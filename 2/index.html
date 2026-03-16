@@ -157,40 +157,56 @@
         }
 
         function getIndicatorValues(chart, studies) {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 return chart.exportData({
                     includeStudies: true,
-                    includeSeries: false
+                    includeSeries: true
                 }).then(result => {
-
                     const lastRow = result.data[result.data.length - 1];
                     const schema = result.schema;
-
-                    const values = {};
+                    const values = {
+                        current: {},
+                        previous: {},
+                    };
+                    const format = (v) => typeof v === 'number' ? Number(v.toFixed(2)) : v;
 
                     schema.forEach((field, index) => {
                         const value = lastRow[index];
+                        const sType = field.sourceType ? field.sourceType.toLowerCase() : '';
 
-                        // Studies object mein loop chala kar check karein
-                        Object.entries(studies).forEach(([name, id]) => {
-                            if (field.sourceId === id) {
-                                // Value ko 2 decimal tak fix karein (number check karne ke baad)
-                                const formattedValue = typeof value === 'number' ? Number(value.toFixed(2)) : value;
-
-                                // Agar name pehle se exist karta hai, toh array mein push karein
-                                if (values[name] !== undefined) {
-                                    // Agar pehle se array nahi hai, toh bana dein
-                                    if (!Array.isArray(values[name])) {
-                                        values[name] = [values[name]];
-                                    }
-                                    values[name].push(formattedValue);
-                                } else {
-                                    // Pehli baar value milne par save karein
-                                    values[name] = formattedValue;
+                        switch (sType) {
+                            case 'series':
+                                // Image ke mutabiq plotTitle check kar rahe hain
+                                const pTitle = (field.plotTitle || "").toLowerCase();
+                                if (['open', 'high', 'low', 'close'].includes(pTitle)) {
+                                    values['current'][pTitle] = format(value);
                                 }
-                            }
-                        });
+                                break;
+
+                            case 'study':
+                                Object.entries(studies).forEach(([name, id]) => {
+                                    if (field.sourceId === id) {
+                                        const formattedValue = format(value);
+                                        if (values['current'][name] !== undefined) {
+                                            if (!Array.isArray(values['current'][name])) {
+                                                values['current'][name] = [values['current'][name]];
+                                            }
+                                            values['current'][name].push(formattedValue);
+                                        } else {
+                                            values['current'][name] = formattedValue;
+                                        }
+                                    }
+                                });
+                                break;
+                        }
                     });
+
+                    // --- Candle Color Logic yahan add kiya hai ---
+                    if (values['current'].open && values['current'].close) {
+                        values['current'].color = getCandleColor(values['current']);
+                    } else {
+                        values['current'].color = 'Unknown';
+                    }
 
                     resolve(values);
 
@@ -256,16 +272,16 @@
                     const chart = widget.chart();
 
                     const studies = {
-                        // "MA": await chart.createStudy('Moving Average', false, false).then(id => id),
-                        "Volume": await chart.createStudy('Volume', false, false).then(id => id),
-                        // "MACD": await chart.createStudy('MACD', false, false).then(id => id),
-                        "RSI": await chart.createStudy('Relative Strength Index', false, false).then(id => id),
+                        // "ma": await chart.createStudy('Moving Average', false, false).then(id => id),
+                        "volume": await chart.createStudy('Volume', false, false).then(id => id),
+                        // "macd": await chart.createStudy('MACD', false, false).then(id => id),
+                        "rsi": await chart.createStudy('Relative Strength Index', false, false).then(id => id),
                     };
 
                     widget.subscribe('onTick', (bar) => {
 
                         getIndicatorValues(chart, studies).then(res => {
-                            console.log(res);
+                            console.log(res.current);
                         });
 
                     });
