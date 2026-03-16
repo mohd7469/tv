@@ -55,20 +55,22 @@
             },
 
             resolveSymbol: (symbolName, onResolve) => {
-                onResolve({
-                    name: symbolName,
-                    ticker: symbolName,
-                    type: "crypto",
-                    session: "24x7",
-                    timezone: "Etc/UTC",
-                    minmov: 1,
-                    pricescale: 100,
-                    has_intraday: true,
-                    supported_resolutions: timeframes,
-                    data_status: "streaming",
-                    exchange: config.exchange,
-                    listed_exchange: config.exchange,
-                });
+                setTimeout(() => {
+                    onResolve({
+                        name: symbolName,
+                        ticker: symbolName,
+                        type: "crypto",
+                        session: "24x7",
+                        timezone: "Etc/UTC",
+                        minmov: 1,
+                        pricescale: 100,
+                        has_intraday: true,
+                        supported_resolutions: timeframes,
+                        data_status: "streaming",
+                        exchange: config.exchange,
+                        listed_exchange: config.exchange,
+                    });
+                }, 0);
             },
 
             getBars: async (symbolInfo, resolution, periodParams, onHistory) => {
