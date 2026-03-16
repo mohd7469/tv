@@ -106,7 +106,7 @@
         };
 
         function initOnReady() {
-            new TradingView.widget({
+            const widget = new TradingView.widget({
                 library_path: "./charting_library/",
                 fullscreen: true,
                 symbol: config.symbol,
@@ -115,19 +115,32 @@
                 datafeed: binanceDatafeed,
                 locale: "en",
                 disabled_features: [
-                    "header_symbol_search",
-                    "use_localstorage_for_settings_events"
+                    "use_localstorage_for_settings"
                 ],
                 enabled_features: [
-                    "countdown",
-                    "show_countdown_timer_if_last_bar_is_not_visible"
+                    "show_symbol_logos",
                 ],
                 overrides: {
-                    "scalesProperties.showCountdown": true,
                     "mainSeriesProperties.showCountdown": true,
-                    "paneProperties.legendProperties.showCountdown": true,
-                    "scalesProperties.showSymbolLastValue": true,
-                }
+                },
+            });
+            widget.onChartReady(() => {
+                const button = widget.createButton({ align: 'right' });
+                button.innerHTML = `
+                    <div class="theme-switch-wrapper">
+                        <span class="theme-switch-text">Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                `;
+
+                const toggle = button.querySelector('#theme-toggle');
+                toggle.addEventListener('change', () => {
+                    const theme = toggle.checked ? 'Dark' : 'Light';
+                    widget.changeTheme(theme);
+                });
             });
         }
 
