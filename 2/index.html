@@ -156,63 +156,76 @@
             return 'Neutral';
         }
 
-        function getIndicatorValues(chart, studies) {
+        function getChartDataValues(chart, studies, count = 2) {
             return new Promise((resolve) => {
                 return chart.exportData({
                     includeStudies: true,
                     includeSeries: true
                 }).then(result => {
-                    const lastRow = result.data[result.data.length - 1];
+                    const data = result.data;
                     const schema = result.schema;
-                    const values = {
-                        current: {},
-                        previous: {},
-                    };
-                    const format = (v) => typeof v === 'number' ? Number(v.toFixed(2)) : v;
+                    const dataLen = data.length;
+                    const schemaLen = schema.length;
 
-                    schema.forEach((field, index) => {
-                        const value = lastRow[index];
-                        const sType = field.sourceType ? field.sourceType.toLowerCase() : '';
-
-                        switch (sType) {
-                            case 'series':
-                                // Image ke mutabiq plotTitle check kar rahe hain
-                                const pTitle = (field.plotTitle || "").toLowerCase();
-                                if (['open', 'high', 'low', 'close'].includes(pTitle)) {
-                                    values['current'][pTitle] = format(value);
-                                }
-                                break;
-
-                            case 'study':
-                                Object.entries(studies).forEach(([name, id]) => {
-                                    if (field.sourceId === id) {
-                                        const formattedValue = format(value);
-                                        if (values['current'][name] !== undefined) {
-                                            if (!Array.isArray(values['current'][name])) {
-                                                values['current'][name] = [values['current'][name]];
-                                            }
-                                            values['current'][name].push(formattedValue);
-                                        } else {
-                                            values['current'][name] = formattedValue;
-                                        }
-                                    }
-                                });
-                                break;
-                        }
-                    });
-
-                    // --- Candle Color Logic yahan add kiya hai ---
-                    if (values['current'].open && values['current'].close) {
-                        values['current'].color = getCandleColor(values['current']);
-                    } else {
-                        values['current'].color = 'Unknown';
+                    // 1. Studies ko Map mein convert karein (Lookup optimization)
+                    const studiesMap = new Map();
+                    const studyNames = Object.keys(studies);
+                    for (let j = 0; j < studyNames.length; j++) {
+                        const name = studyNames[j];
+                        studiesMap.set(studies[name], name);
                     }
 
-                    resolve(values);
+                    const format = (v) => typeof v === 'number' ? Number(v.toFixed(2)) : v;
+                    const finalResults = [];
 
+                    // 2. Sirf required rows uthayein
+                    const startIdx = Math.max(0, dataLen - count);
+
+                    // Fast Outer Loop (Candles)
+                    for (let r = startIdx; r < dataLen; r++) {
+                        const row = data[r];
+                        const candleData = {};
+
+                        // Fast Inner Loop (Schema/Columns)
+                        for (let i = 0; i < schemaLen; i++) {
+                            const field = schema[i];
+                            const value = row[i];
+                            const sType = field.sourceType; // Caching for speed
+
+                            // Direct string comparison (switch se bhi fast)
+                            if (sType === 'series') {
+                                const pTitle = field.plotTitle;
+                                if (pTitle === 'open' || pTitle === 'close' || pTitle === 'high' || pTitle === 'low') {
+                                    candleData[pTitle] = format(value);
+                                }
+                            } else if (sType === 'study') {
+                                // Map Lookup (Fastest way to find if ID exists)
+                                const studyName = studiesMap.get(field.sourceId);
+                                if (studyName) {
+                                    const formattedVal = format(value);
+                                    if (candleData[studyName] !== undefined) {
+                                        if (!Array.isArray(candleData[studyName])) {
+                                            candleData[studyName] = [candleData[studyName]];
+                                        }
+                                        candleData[studyName].push(formattedVal);
+                                    } else {
+                                        candleData[studyName] = formattedVal;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Final Touch
+                        if (candleData.open && candleData.close) {
+                            candleData.color = getCandleColor(candleData);
+                        }
+                        finalResults.push(candleData);
+                    }
+
+                    resolve(finalResults);
                 }).catch(err => {
-                    console.warn("Data fetch failed", err);
-                    resolve({});
+                    console.error("Critical Error in FastDataFetch:", err);
+                    resolve([]);
                 });
             });
         }
@@ -279,9 +292,8 @@
                     };
 
                     widget.subscribe('onTick', (bar) => {
-
-                        getIndicatorValues(chart, studies).then(res => {
-                            console.log(res.current);
+                        getChartDataValues(chart, studies).then(res => {
+                            console.log(res);
                         });
 
                     });
