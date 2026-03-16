@@ -92,7 +92,7 @@
                 } catch (e) { onHistory([], { noData: true }); }
             },
 
-            subscribeBars: (symbolInfo, resolution, onRealtimeCallback) => {
+            subscribeBars: (symbolInfo, resolution, onRealtimeCallback, subscriberUID) => {
                 if (socket) socket.close();
                 const interval = intervalMap[resolution] || '1m';
                 const cleanSymbol = symbolInfo.name.replace('.P', '').toLowerCase();
@@ -110,6 +110,15 @@
                         volume: parseFloat(k.v)
                     });
                 };
+            },
+
+            // --- YE METHOD ZARURI HAI PERFORMANCE KE LIYE ---
+            unsubscribeBars: (subscriberUID) => {
+                if (socket) {
+                    socket.close();
+                    socket = null; // Memory clean karne ke liye
+                    console.log("Unsubscribed & Socket Closed");
+                }
             }
         };
 
@@ -302,7 +311,7 @@
                         try {
                             // 1. scan all indicators first
                             const studiesMap = await getAllStudies(chart);
-                            console.log(studiesMap);
+                            console.log(`${studiesMap.size} indicators found`);
 
                             // 2. then extract their data (upto 2 candles)
                             const res = await getChartData(chart, studiesMap, 3);
