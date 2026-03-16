@@ -26,7 +26,7 @@
         };
 
         const timeframes = Object.keys(intervalMap);
-        let socket = null;
+        const activeSockets = {};
 
         // 1. Time Offset calculate karein (System vs Binance)
         let binanceTimeOffset = 0;
@@ -93,12 +93,20 @@
             },
 
             subscribeBars: (symbolInfo, resolution, onRealtimeCallback, subscriberUID) => {
-                if (socket) socket.close();
+                // 1. Pehle check karein ke is specific subscriber ka koi socket chal raha hai?
+                if (activeSockets[subscriberUID]) {
+                    activeSockets[subscriberUID].close();
+                    delete activeSockets[subscriberUID];
+                }
+
                 const interval = intervalMap[resolution] || '1m';
                 const cleanSymbol = symbolInfo.name.replace('.P', '').toLowerCase();
-                socket = new WebSocket(`wss://fstream.binance.com/ws/${cleanSymbol}@kline_${interval}`);
 
-                socket.onmessage = (event) => {
+                // 2. Naya socket create karein aur usey UID ke against save karein
+                const ws = new WebSocket(`wss://fstream.binance.com/ws/${cleanSymbol}@kline_${interval}`);
+                activeSockets[subscriberUID] = ws;
+
+                ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     const k = data.k;
                     onRealtimeCallback({
@@ -110,14 +118,18 @@
                         volume: parseFloat(k.v)
                     });
                 };
+
+                ws.onclose = () => {
+                    console.log(`\nPrevious Socket Successfully Closed`);
+                    console.log(`Total Active Sockets ${Object.keys(activeSockets).length}\n\n`);
+                };
             },
 
-            // --- YE METHOD ZARURI HAI PERFORMANCE KE LIYE ---
             unsubscribeBars: (subscriberUID) => {
-                if (socket) {
-                    socket.close();
-                    socket = null; // Memory clean karne ke liye
-                    console.log("Unsubscribed & Socket Closed");
+                // 3. Sirf wahi socket band karein jiska UID TradingView ne bheja hai
+                if (activeSockets[subscriberUID]) {
+                    activeSockets[subscriberUID].close();
+                    delete activeSockets[subscriberUID];
                 }
             }
         };
