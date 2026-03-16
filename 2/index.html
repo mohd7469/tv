@@ -149,6 +149,51 @@
             }
         };
 
+        function getIndicatorValues(chart, studies) {
+            return new Promise((resolve, reject) => {
+                return chart.exportData({
+                    includeStudies: true,
+                    includeSeries: false
+                }).then(result => {
+
+                    const lastRow = result.data[result.data.length - 1];
+                    const schema = result.schema;
+
+                    const values = {};
+
+                    schema.forEach((field, index) => {
+                        const value = lastRow[index];
+
+                        // Studies object mein loop chala kar check karein
+                        Object.entries(studies).forEach(([name, id]) => {
+                            if (field.sourceId === id) {
+                                // Value ko 2 decimal tak fix karein (number check karne ke baad)
+                                const formattedValue = typeof value === 'number' ? Number(value.toFixed(2)) : value;
+
+                                // Agar name pehle se exist karta hai, toh array mein push karein
+                                if (values[name] !== undefined) {
+                                    // Agar pehle se array nahi hai, toh bana dein
+                                    if (!Array.isArray(values[name])) {
+                                        values[name] = [values[name]];
+                                    }
+                                    values[name].push(formattedValue);
+                                } else {
+                                    // Pehli baar value milne par save karein
+                                    values[name] = formattedValue;
+                                }
+                            }
+                        });
+                    });
+
+                    resolve(values);
+
+                }).catch(err => {
+                    console.warn("Indicator values failed to calculate", err);
+                    return {};
+                });
+            });
+        }
+
         function initOnReady() {
             const widget = new TradingView.widget({
                 library_path: "./charting_library/",
@@ -203,39 +248,18 @@
 
                     const chart = widget.chart();
 
-                    const maId = await chart.createStudy('Moving Average', false, false).then(id => id);
-                    const volumeId = await chart.createStudy('Volume', false, false).then(id => id);
-                    const macdId = await chart.createStudy('MACD', false, false).then(id => id);
-                    const rsiId = await chart.createStudy('Relative Strength Index', false, false).then(id => id);
+                    const studies = {
+                        "MA": await chart.createStudy('Moving Average', false, false).then(id => id),
+                        "Volume": await chart.createStudy('Volume', false, false).then(id => id),
+                        "MACD": await chart.createStudy('MACD', false, false).then(id => id),
+                        "RSI": await chart.createStudy('Relative Strength Index', false, false).then(id => id),
+                    };
 
                     widget.subscribe('onTick', (bar) => {
-                        chart.exportData({
-                            includeStudies: true,
-                            includeSeries: false
-                        }).then(result => {
-                            const lastRow = result.data[result.data.length - 1];
-                            const schema = result.schema;
-
-                            // Specific filtering using IDs
-                            schema.forEach((field, index) => {
-                                const value = lastRow[index];
-                                switch (field.sourceId) {
-                                    case rsiId:
-                                        console.log(`RSI: ${value.toFixed(2)}`);
-                                        break;
-                                    case maId:
-                                        console.log(`MA: ${value.toFixed(2)}`);
-                                        break;
-                                    case volumeId:
-                                        console.log(`Volume: ${value}`);
-                                        break;
-                                    case macdId:
-                                        console.log(`MACD: ${value.toFixed(2)}`);
-                                        break;
-                                }
-                                console.log(`\n`);
+                        getIndicatorValues(chart, studies)
+                            .then(values => {
+                                console.log(values);
                             });
-                        });
                     });
 
                 });
