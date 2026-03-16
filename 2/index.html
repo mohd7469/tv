@@ -325,8 +325,8 @@
                             const studiesMap = await getAllStudies(chart);
                             console.log(`${studiesMap.size} indicators found`);
 
-                            // 2. then extract their data (upto 2 candles)
-                            const res = await getChartData(chart, studiesMap, 3);
+                            // 2. then extract their data (upto X candles)
+                            const res = await getChartData(chart, studiesMap, 1);
 
                             // 3. Final Result
                             console.log(res);
