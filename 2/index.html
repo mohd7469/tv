@@ -162,6 +162,7 @@
                 // client_id: 'my_local_app',
                 // user_id: 'user_01',
                 disabled_features: [
+                    "create_volume_indicator_by_default",
                     // "use_localstorage_for_settings",
                     "symbol_search_hot_key",
                     "header_symbol_search",
@@ -173,6 +174,8 @@
                 ],
                 enabled_features: [
                     "show_symbol_logos",
+                    "side_toolbar",
+                    "right_toolbar",
                     // "use_localstorage_for_settings_events",
                 ],
                 overrides: {
@@ -180,7 +183,7 @@
                 },
             });
             widget.onChartReady(() => {
-                widget.headerReady().then(() => {
+                widget.headerReady().then(async () => {
                     const button = widget.createButton({ align: 'right' });
                     button.innerHTML = `
                         <div class="theme-switch-wrapper">
@@ -198,8 +201,43 @@
                         widget.changeTheme(theme);
                     });
 
-                    // Add default indicators
-                    widget.chart().createStudy('Relative Strength Index', false, false);
+                    const chart = widget.chart();
+
+                    const maId = await chart.createStudy('Moving Average', false, false).then(id => id);
+                    const volumeId = await chart.createStudy('Volume', false, false).then(id => id);
+                    const macdId = await chart.createStudy('MACD', false, false).then(id => id);
+                    const rsiId = await chart.createStudy('Relative Strength Index', false, false).then(id => id);
+
+                    widget.subscribe('onTick', (bar) => {
+                        chart.exportData({
+                            includeStudies: true,
+                            includeSeries: false
+                        }).then(result => {
+                            const lastRow = result.data[result.data.length - 1];
+                            const schema = result.schema;
+
+                            // Specific filtering using IDs
+                            schema.forEach((field, index) => {
+                                const value = lastRow[index];
+                                switch (field.sourceId) {
+                                    case rsiId:
+                                        console.log(`RSI: ${value.toFixed(2)}`);
+                                        break;
+                                    case maId:
+                                        console.log(`MA: ${value.toFixed(2)}`);
+                                        break;
+                                    case volumeId:
+                                        console.log(`Volume: ${value}`);
+                                        break;
+                                    case macdId:
+                                        console.log(`MACD: ${value.toFixed(2)}`);
+                                        break;
+                                }
+                                console.log(`\n`);
+                            });
+                        });
+                    });
+
                 });
             });
         }
