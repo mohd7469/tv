@@ -38,7 +38,7 @@
 
         const config = {
             symbol: "BTCUSDT.P",
-            interval: "3",
+            interval: "1",
             exchange: "Binance"
         };
 
@@ -168,7 +168,8 @@
                     "header_compare",
                     "legend_inplace_edit",
                     "trading_account_manager",
-
+                    "left_toolbar",
+                    "right_toolbar",
                 ],
                 enabled_features: [
                     "show_symbol_logos",
@@ -196,6 +197,9 @@
                         const theme = toggle.checked ? 'Dark' : 'Light';
                         widget.changeTheme(theme);
                     });
+
+                    // Add default indicators
+                    widget.chart().createStudy('Relative Strength Index', false, false);
                 });
             });
         }
