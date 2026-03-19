@@ -113,42 +113,6 @@
             }
         };
 
-        const localStorageAdapter = {
-            // Sabhi saved charts ko load karne ke liye
-            getAllCharts: function () {
-                return Promise.resolve(JSON.parse(localStorage.getItem('tv_charts') || '[]'));
-            },
-
-            // Chart (Drawings ke saath) save karne ke liye
-            saveChart: function (chartData) {
-                let charts = JSON.parse(localStorage.getItem('tv_charts') || '[]');
-                if (!chartData.id) {
-                    chartData.id = Math.random().toString(36).substring(7);
-                    charts.push(chartData);
-                } else {
-                    const index = charts.findIndex(c => c.id === chartData.id);
-                    if (index !== -1) charts[index] = chartData;
-                }
-                localStorage.setItem('tv_charts', JSON.stringify(charts));
-                return Promise.resolve(chartData.id);
-            },
-
-            // Specific chart ko kholne ke liye
-            getChartContent: function (id) {
-                const charts = JSON.parse(localStorage.getItem('tv_charts') || '[]');
-                const chart = charts.find(c => c.id === id);
-                return Promise.resolve(chart ? chart.content : "");
-            },
-
-            // Chart delete karne ke liye
-            removeChart: function (id) {
-                let charts = JSON.parse(localStorage.getItem('tv_charts') || '[]');
-                charts = charts.filter(c => c.id !== id);
-                localStorage.setItem('tv_charts', JSON.stringify(charts));
-                return Promise.resolve();
-            }
-        };
-
         function getIndicatorValues(chart, studies) {
             return new Promise((resolve, reject) => {
                 return chart.exportData({
@@ -219,7 +183,6 @@
                 ],
                 enabled_features: [
                     "show_symbol_logos",
-                    "side_toolbar",
                     "right_toolbar",
                     // "use_localstorage_for_settings_events",
                 ],
@@ -227,44 +190,10 @@
                     "mainSeriesProperties.showCountdown": true,
                 },
             });
-            widget.onChartReady(() => {
-                widget.headerReady().then(async () => {
-                    const button = widget.createButton({ align: 'right' });
-                    button.innerHTML = `
-                        <div class="theme-switch-wrapper">
-                            <span class="theme-switch-text">Dark Mode</span>
-                            <label class="switch">
-                                <input type="checkbox" id="theme-toggle">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    `;
-
-                    const toggle = button.querySelector('#theme-toggle');
-                    toggle.addEventListener('change', () => {
-                        const theme = toggle.checked ? 'Dark' : 'Light';
-                        widget.changeTheme(theme);
-                    });
-
-                    const chart = widget.chart();
-
-                    const studies = {
-                        "MA": await chart.createStudy('Moving Average', false, false).then(id => id),
-                        "Volume": await chart.createStudy('Volume', false, false).then(id => id),
-                        "MACD": await chart.createStudy('MACD', false, false).then(id => id),
-                        "RSI": await chart.createStudy('Relative Strength Index', false, false).then(id => id),
-                    };
-
-                    widget.subscribe('onTick', (bar) => {
-                        getIndicatorValues(chart, studies)
-                            .then(values => {
-                                console.log(values);
-                            });
-                    });
-
-                });
-            });
         }
+
+        widget.onChartReady(() => {
+        })
 
         window.addEventListener('DOMContentLoaded', initOnReady);
     </script>
