@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-04-13T21:00:29.973Z",
+  "criticalFiles": "PASS",
+  "hasBundles": true,
+  "bundleCount": 232,
+  "jsBundleCount": 112,
+  "cssBundleCount": 120,
+  "recommendations": []
+}

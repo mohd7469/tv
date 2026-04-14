@@ -1,0 +1,6 @@
+@echo off
+echo Stopping any existing TradingView server...
+taskkill /F /IM node.exe > nul 2>&1
+timeout /t 2 /nobreak > nul
+echo Starting server...
+node local-server.js
