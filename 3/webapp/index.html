@@ -354,6 +354,32 @@
 				documentationButton.addEventListener('roving-tabindex:main-element', handleRovingTabindexMainElement);
 				documentationButton.addEventListener('roving-tabindex:secondary-element', handleRovingTabindexSecondaryElement);
 			});
+
+			widget.onChartReady(async () => {
+				const watchlistApi = await widget.watchList();
+				const activeListId = watchlistApi.getActiveListId();
+				const allLists = watchlistApi.getAllLists();
+
+				if (!allLists || !allLists[activeListId]) {
+					console.warn('No active watchlist found.');
+					return;
+				}
+
+				const rawSymbols = allLists[activeListId].symbols;
+				const tradingSymbols = rawSymbols.filter(symbol => !symbol.startsWith('###'));
+
+				if (tradingSymbols.length === 0) {
+					console.warn('No trading symbols found in watchlist.');
+					return;
+				}
+
+				console.log(`Watchlist (${tradingSymbols.length}):`, tradingSymbols);
+
+
+			});
+
+
+
 			window.frames[0].focus();
 		}
 
