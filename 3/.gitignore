@@ -17,7 +17,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Build outputs
-dist/
+# dist/
 build/
 .next/
 out/
