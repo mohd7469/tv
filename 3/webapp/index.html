@@ -241,8 +241,6 @@
 							'BINANCE:ETHUSDT.P',
 							'BINANCE:SOLUSDT.P',
 							'BINANCE:DOGEUSDT.P',
-							'BINANCE:XRPUSDT.P',
-							'BINANCE:ADAUSDT.P'
 						],
 					},
 				},
@@ -263,6 +261,7 @@
 				broker_factory: function (host) {
 					return new Brokers.BrokerDemo(host, datafeed);
 				},
+
 				broker_config: {
 					configFlags: {
 						supportNativeReversePosition: true,
@@ -283,6 +282,7 @@
 					],
 				},
 			}));
+
 			setDemoDatafeedStatus = function (symbol) {
 				widget
 					.customSymbolStatus()
@@ -373,9 +373,47 @@
 					return;
 				}
 
-				console.log(`Watchlist (${tradingSymbols.length}):`, tradingSymbols);
+				const formatVolume = (vol) => {
+					if (vol >= 1000000000) return (vol / 1000000000).toFixed(2) + 'B'; // Billions
+					if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';    // Millions
+					if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';       // Thousands
+					return vol.toString(); // Small numbers
+				};
 
+				// Simple function to log watchlist data
+				const logWatchlistData = (quoteData) => {
+					// Check if quoteData is valid
+					if (!quoteData) {
+						return;
+					}
 
+					const { n, v } = quoteData[0];
+
+					if (tradingSymbols.includes(n)) {
+						const { lp, ch, chp, volume } = v
+
+						const data = {
+							symbol: n ? n : '-',
+							last: lp !== undefined ? lp.toFixed(2) : '-',
+							changeUsd: ch !== undefined ? ch.toFixed(2) : '-',
+							changePercent: chp !== undefined ? chp.toFixed(2) : '-',
+							vol: volume !== undefined ? formatVolume(volume) : '-'
+						};
+
+						console.log(data);
+					}
+				};
+
+				// Subscribe to real-time updates - simple non-stop logging
+				datafeed.subscribeQuotes(
+					tradingSymbols,
+					['lp', 'ch', 'chp', 'v'],
+					(quoteData) => {
+						logWatchlistData(quoteData);
+					}
+				);
+
+				console.log(`Watchlist: Subscribed to ${tradingSymbols.length} symbols for real-time updates`);
 			});
 
 
