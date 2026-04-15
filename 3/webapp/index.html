@@ -356,67 +356,122 @@
 			});
 
 			widget.onChartReady(async () => {
-				const watchlistApi = await widget.watchList();
-				const activeListId = watchlistApi.getActiveListId();
-				const allLists = watchlistApi.getAllLists();
+				// Variables that need to be accessible to subscribeToWatchlist function
+				let watchlistApi, tradingSymbols, formatVolume, logWatchlistData;
+				let isSubscribed = false;
 
-				if (!allLists || !allLists[activeListId]) {
-					console.warn('No active watchlist found.');
-					return;
-				}
+				// Initialize watchlist data
+				try {
+					watchlistApi = await widget.watchList();
+					const activeListId = watchlistApi.getActiveListId();
+					const allLists = watchlistApi.getAllLists();
 
-				const rawSymbols = allLists[activeListId].symbols;
-				const tradingSymbols = rawSymbols.filter(symbol => !symbol.startsWith('###'));
-
-				if (tradingSymbols.length === 0) {
-					console.warn('No trading symbols found in watchlist.');
-					return;
-				}
-
-				const formatVolume = (vol) => {
-					if (vol >= 1000000000) return (vol / 1000000000).toFixed(2) + 'B'; // Billions
-					if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';    // Millions
-					if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';       // Thousands
-					return vol.toString(); // Small numbers
-				};
-
-				// Simple function to log watchlist data
-				const logWatchlistData = (quoteData) => {
-					// Check if quoteData is valid
-					if (!quoteData) {
+					if (!allLists || !allLists[activeListId]) {
+						console.warn('No active watchlist found.');
 						return;
 					}
 
-					const { n, v } = quoteData[0];
+					const rawSymbols = allLists[activeListId].symbols;
+					tradingSymbols = rawSymbols.filter(symbol => !symbol.startsWith('###'));
 
-					if (tradingSymbols.includes(n)) {
-						const { lp, ch, chp, volume } = v
+					if (tradingSymbols.length === 0) {
+						console.warn('No trading symbols found in watchlist.');
+						return;
+					}
 
-						const data = {
-							symbol: n ? n : '-',
-							last: lp !== undefined ? lp.toFixed(2) : '-',
-							changeUsd: ch !== undefined ? ch.toFixed(2) : '-',
-							changePercent: chp !== undefined ? chp.toFixed(2) : '-',
-							vol: volume !== undefined ? formatVolume(volume) : '-'
-						};
+					formatVolume = (vol) => {
+						if (vol >= 1000000000) return (vol / 1000000000).toFixed(2) + 'B'; // Billions
+						if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';    // Millions
+						if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';       // Thousands
+						return vol.toString(); // Small numbers
+					};
 
-						console.log(data);
+					// Simple function to log watchlist data
+					logWatchlistData = (quoteData) => {
+						// Check if quoteData is valid
+						if (!quoteData) {
+							return;
+						}
+
+						const { n, v } = quoteData[0];
+
+						if (tradingSymbols.includes(n)) {
+							const { lp, ch, chp, volume } = v
+
+							const data = {
+								symbol: n ? n : '-',
+								last: lp !== undefined ? lp.toFixed(2) : '-',
+								changeUsd: ch !== undefined ? ch.toFixed(2) : '-',
+								changePercent: chp !== undefined ? chp.toFixed(2) : '-',
+								vol: volume !== undefined ? formatVolume(volume) : '-'
+							};
+
+							console.log(data);
+						}
+					};
+
+					console.log(`Watchlist initialized with ${tradingSymbols.length} symbols.`);
+
+				} catch (error) {
+					console.error('Error initializing watchlist:', error);
+					return;
+				}
+
+				// Function to manually subscribe to watchlist updates
+				window.subscribeToWatchlist = function () {
+					if (isSubscribed) {
+						console.log('Watchlist subscription is already active.');
+						return true;
+					}
+
+					if (!tradingSymbols || tradingSymbols.length === 0) {
+						console.error('Cannot subscribe: No trading symbols available.');
+						return false;
+					}
+
+					if (!datafeed || !datafeed.subscribeQuotes) {
+						console.error('Cannot subscribe: Datafeed does not support subscribeQuotes.');
+						return false;
+					}
+
+					try {
+						// Subscribe to real-time updates
+						datafeed.subscribeQuotes(
+							tradingSymbols,
+							['lp', 'ch', 'chp', 'v'],
+							(quoteData) => {
+								logWatchlistData(quoteData);
+							}
+						);
+
+						isSubscribed = true;
+						console.log(`Watchlist: Subscribed to ${tradingSymbols.length} symbols for real-time updates`);
+						console.log('Symbols:', tradingSymbols);
+						return true;
+
+					} catch (error) {
+						console.error('Error subscribing to watchlist:', error);
+						return false;
 					}
 				};
 
-				// Subscribe to real-time updates - simple non-stop logging
-				datafeed.subscribeQuotes(
-					tradingSymbols,
-					['lp', 'ch', 'chp', 'v'],
-					(quoteData) => {
-						logWatchlistData(quoteData);
-					}
-				);
+				// Function to check subscription status
+				window.isWatchlistSubscribed = function () {
+					return isSubscribed;
+				};
 
-				console.log(`Watchlist: Subscribed to ${tradingSymbols.length} symbols for real-time updates`);
+				// Function to get watchlist symbols
+				window.getWatchlistSymbols = function () {
+					return tradingSymbols ? [...tradingSymbols] : [];
+				};
+
+				// window.subscribeToWatchlist();
+
+				console.log('window.subscribeToWatchlist() - Start real-time logging');
+				console.log('window.isWatchlistSubscribed() - Check subscription status');
+				console.log('window.getWatchlistSymbols() - Get current symbols');
+
 			});
-
-
 
 			window.frames[0].focus();
 		}
