@@ -171,6 +171,15 @@
 
 			let setDemoDatafeedStatus = undefined;
 
+			const formatVolume = (vol) => {
+				if (vol === undefined || vol === null || isNaN(vol)) return '-';
+				const v = parseFloat(vol);
+				if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+				if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+				if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+				return v.toFixed(0);
+			};
+
 			class CustomDatafeed extends TradingView.TradingViewDatafeed {
 				constructor() {
 					super();
@@ -262,6 +271,9 @@
 							if (unifiedData.data.length > 0) {
 								unifiedData.data[unifiedData.data.length - 1] = liveBar;
 							}
+
+							// format entire bars volumn
+							unifiedData.data.forEach(bar => bar.volume = formatVolume(bar.volume));
 
 							console.log("Candle Data:", unifiedData);
 
@@ -453,15 +465,6 @@
 			widget.onChartReady(async () => {
 				let tradingSymbols = [];
 				let isSubscribed = false;
-
-				const formatVolume = (vol) => {
-					if (vol === undefined || vol === null || isNaN(vol)) return '-';
-					const v = parseFloat(vol);
-					if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
-					if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
-					if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
-					return v.toFixed(0);
-				};
 
 				try {
 					const watchlistApi = await widget.watchList();
