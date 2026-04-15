@@ -181,6 +181,31 @@
 						arguments[3]
 					);
 				}
+
+				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
+
+					super.subscribeBars(
+						symbolInfo,
+						resolution,
+						(bar) => {
+							const candleData = {
+								symbol: symbolInfo.name,
+								open: bar.open,
+								high: bar.high,
+								low: bar.low,
+								close: bar.close,
+								volume: bar.volume,
+								time: bar.time,
+							}
+
+							console.log("candleData:", candleData);
+
+							onTick(bar);
+						},
+						listenerGuid,
+						onResetCacheNeededCallback
+					);
+				}
 			}
 			const datafeed = new CustomDatafeed();
 			const isDark =
@@ -220,7 +245,8 @@
 					'pre_post_market_price_line'
 				],
 				overrides: {
-					'mainSeriesProperties.style': 19, // volume candles
+					// 'mainSeriesProperties.style': 19, // volume candles
+					"mainSeriesProperties.showCountdown": true,
 					// 'mainSeriesProperties.sessionId': 'extended',
 				},
 				charts_storage_url: 'https://saveload.tradingview.com',
