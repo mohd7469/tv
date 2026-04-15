@@ -13,6 +13,21 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
+		// Centralized Data Service (Event Bus)
+		window.DataService = {
+			_listeners: {},
+			subscribe: function (event, callback) {
+				if (!this._listeners[event]) this._listeners[event] = [];
+				this._listeners[event].push(callback);
+				// console.log(`[DataService] New subscriber for: ${event}`);
+			},
+			publish: function (event, data) {
+				if (this._listeners[event]) {
+					this._listeners[event].forEach(callback => callback(data));
+				}
+			}
+		};
+
 		function getParameterByName(name) {
 			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
 			var regex = new RegExp('[\\?&]' + name + '=([^&#]*)'),
@@ -277,6 +292,9 @@
 
 							console.log("Candle Data:", unifiedData);
 
+							// Publish to central DataService
+							window.DataService.publish('candle_update', unifiedData);
+
 							onTick(bar);
 						}
 
@@ -495,6 +513,9 @@
 										volume: formatVolume(volume)
 									}
 									console.log(response);
+
+									// Publish to central DataService
+									window.DataService.publish('watchlist_update', response);
 								}
 							});
 						},
