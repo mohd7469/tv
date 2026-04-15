@@ -176,22 +176,31 @@
 					super();
 					this.historicalBars = [];      // Buffer for history
 					this.historicalNumber = 5;     // Number of bars to retrieve
+					this.currentResolution = null; // Track current timeframe/resolution
 				}
 
 				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
 					if (typeof setDemoDatafeedStatus === 'function') {
 						setDemoDatafeedStatus(symbolName);
 					}
-
 					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
 				}
 
 				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
+					// --- CHANGE 1: TIMEFRAME CHANGE DETECTION ---
+					// Agar timeframe change hua hai (e.g. 1m se 5m), to buffer clear karein
+					if (this.currentResolution !== resolution) {
+						this.historicalBars = [];
+						this.currentResolution = resolution;
+					}
+
 					try {
 						super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
 							if (bars && bars.length > 0) {
-								// History save ki
-								this.historicalBars = [...bars];
+								// Sirf initial load (firstDataRequest) par buffer initialize karein
+								if (periodParams.firstDataRequest) {
+									this.historicalBars = [...bars];
+								}
 								onResult(bars, meta);
 							}
 						}, onError);
@@ -203,19 +212,22 @@
 				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
 					try {
 						const onCallback = (bar) => {
+							// Safety check: Ensure resolution matches
+							if (this.currentResolution !== resolution) return;
+
 							// 1: BUFFER UPDATE (for sliding window)
 							if (this.historicalBars.length > 0) {
 								const lastBarInArray = this.historicalBars[this.historicalBars.length - 1];
 
 								if (bar.time > lastBarInArray.time) {
-									// Nayi candle shuru hui (e.g., 8 ke baad 9 aayi), to array mein add karo
+									// Nayi candle shuru hui, array mein push karein
 									this.historicalBars.push(bar);
 								} else {
-									// Purani candle hi update ho rahi hai, to aakhri index update karo
+									// Purani candle update ho rahi hai, last index replace karein
 									this.historicalBars[this.historicalBars.length - 1] = bar;
 								}
 
-								// Memory manage karne ke liye (Optional)
+								// Memory limit (300-500 bars are enough)
 								if (this.historicalBars.length > 500) this.historicalBars.shift();
 							}
 
@@ -229,8 +241,8 @@
 								volume: bar.volume,
 							};
 
-							// History se bars nikaali (Wo pehle se hi isi format mein hain)
-							const recentHistory = this.historicalBars.slice(-(this.historicalNumber)).map(b => ({
+							// 3. SLIDING WINDOW (Get historicalNumber amount of bars)
+							const recentHistory = this.historicalBars.slice(-this.historicalNumber).map(b => ({
 								time: b.time,
 								open: b.open,
 								high: b.high,
@@ -239,15 +251,17 @@
 								volume: b.volume
 							}));
 
-							// UNIFIED CONSOLE LOG
+							// 4. UNIFIED CONSOLE LOG
 							const unifiedData = {
 								symbol: symbolInfo.name,
 								resolution: resolution,
 								data: [...recentHistory]
 							};
 
-							// replace last index with live one 
-							unifiedData.data[unifiedData.data.length - 1] = liveBar;
+							// replace last index with live one for real-time accuracy
+							if (unifiedData.data.length > 0) {
+								unifiedData.data[unifiedData.data.length - 1] = liveBar;
+							}
 
 							console.log("Candle Data:", unifiedData);
 
