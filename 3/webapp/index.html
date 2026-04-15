@@ -13,15 +13,16 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
-		if (!window.DataService) {
-			window.DataService = {
+		// Centralized Data Service
+		if (!window.TVDataService) {
+			window.TVDataService = {
 				_listeners: {},
 				subscribe: function (event, callback) {
 					if (!this._listeners[event]) {
 						this._listeners[event] = [];
 					}
 					if (this._listeners[event].includes(callback)) {
-						console.warn(`[DataService] Already subscribed to: ${event}`);
+						console.warn(`[TVDataService] Already subscribed to: ${event}`);
 						return;
 					}
 					this._listeners[event].push(callback);
@@ -29,7 +30,7 @@
 				unsubscribe: function (event, callback) {
 					if (!this._listeners[event]) return;
 					this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
-					console.log(`[DataService] Unsubscribed from: ${event}`);
+					console.log(`[TVDataService] Unsubscribed from: ${event}`);
 				},
 				publish: function (event, data) {
 					if (this._listeners[event]) {
@@ -37,8 +38,21 @@
 					}
 				}
 			};
-			console.log("[DataService] Initialized");
-			console.log("[DataService] Use window.DataService.subscribe('event_name', callbackFn) to use realtime updates");
+			console.log("[TVDataService] Initialized");
+			console.log("[TVDataService] Use window.TVDataService.subscribe('event_name', callbackFn) to use realtime updates");
+		}
+
+		// Centralized Configuration
+		if (!window.TVChartConfig) {
+			window.TVChartConfig = {
+				symbol: "BYBIT:BTCUSDT.P",
+				timeframe: "1",
+				watchList: [
+					"BYBIT:BTCUSDT.P",
+					"BINANCE:ETHUSDT.P",
+					"OKX:SOLUSDT.P"
+				]
+			};
 		}
 
 		function getParameterByName(name) {
@@ -305,8 +319,8 @@
 
 							// console.log("Candle Data:", unifiedData);
 
-							// Publish to central DataService
-							window.DataService.publish('candle_update', unifiedData);
+							// Publish to central TVDataService
+							window.TVDataService.publish('candle_update', unifiedData);
 
 							onTick(bar);
 						}
@@ -327,8 +341,8 @@
 			var widget = (window.tvWidget = new TradingView.widget({
 				// debug: true, // uncomment this line to see Library errors and warnings in the console
 				fullscreen: true,
-				symbol: 'BINANCE:BTCUSDT.P',
-				interval: '1',
+				symbol: window.TVChartConfig.symbol,
+				interval: window.TVChartConfig.timeframe,
 				container: 'tv_chart_container',
 				//	BEWARE: no trailing slash is expected in feed URL
 				datafeed: datafeed,
@@ -373,13 +387,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: [
-							'###CRYPTO',
-							'BINANCE:BTCUSDT.P',
-							'BINANCE:ETHUSDT.P',
-							'BINANCE:SOLUSDT.P',
-							'BINANCE:DOGEUSDT.P',
-						],
+						default_symbols: window.TVChartConfig.watchList,
 					},
 				},
 
@@ -506,10 +514,10 @@
 					}
 				} catch (e) { console.error(e); }
 
-				const fastSymbols = ["BINANCE:BTCUSDT.P"];
+				const fastSymbols = [window.TVChartConfig.symbol];
 
 				datafeed.subscribeQuotes(
-					tradingSymbols,
+					window.TVChartConfig.watchList,
 					fastSymbols,
 					(quoteArrayOfObjectsData) => {
 						quoteArrayOfObjectsData?.forEach(quoteData => {
@@ -526,8 +534,8 @@
 								}
 								// console.log(response);
 
-								// Publish to central DataService
-								window.DataService.publish('watchlist_update', response);
+								// Publish to central TVDataService
+								window.TVDataService.publish('watchlist_update', response);
 							}
 						});
 					},
