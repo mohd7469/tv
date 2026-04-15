@@ -17,9 +17,22 @@
 		window.DataService = {
 			_listeners: {},
 			subscribe: function (event, callback) {
-				if (!this._listeners[event]) this._listeners[event] = [];
+				if (!this._listeners[event]) {
+					this._listeners[event] = [];
+				}
+
+				// Check: Kya ye callback pehle se shamil hai?
+				if (this._listeners[event].includes(callback)) {
+					console.warn(`[DataService] Already subscribed to: ${event}`);
+					return; // Yahin se wapis ho jao, dobara add mat karo
+				}
+
 				this._listeners[event].push(callback);
-				// console.log(`[DataService] New subscriber for: ${event}`);
+			},
+			unsubscribe: function (event, callback) {
+				if (!this._listeners[event]) return;
+				this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
+				console.log(`[DataService] Unsubscribed from: ${event}`);
 			},
 			publish: function (event, data) {
 				if (this._listeners[event]) {
@@ -290,7 +303,7 @@
 							// format entire bars volumn
 							unifiedData.data.forEach(bar => bar.volume = formatVolume(bar.volume));
 
-							console.log("Candle Data:", unifiedData);
+							// console.log("Candle Data:", unifiedData);
 
 							// Publish to central DataService
 							window.DataService.publish('candle_update', unifiedData);
@@ -495,35 +508,31 @@
 
 				const fastSymbols = ["BINANCE:BTCUSDT.P"];
 
-				window.subscribeToWatchlist = function () {
-					datafeed.subscribeQuotes(
-						tradingSymbols,
-						fastSymbols,
-						(quoteArrayOfObjectsData) => {
-							quoteArrayOfObjectsData?.forEach(quoteData => {
-								const { n, s, v } = quoteData;
-								const currentSymbol = n;
-								if (s === 'ok' && v.trade_loaded) {
-									const { original_name, lp, ch, chp, volume } = v;
-									const response = {
-										symbol: original_name,
-										lastPrice: parseFloat(lp),
-										changeUsd: parseFloat(ch),
-										changePercent: parseFloat(chp),
-										volume: formatVolume(volume)
-									}
-									console.log(response);
-
-									// Publish to central DataService
-									window.DataService.publish('watchlist_update', response);
+				datafeed.subscribeQuotes(
+					tradingSymbols,
+					fastSymbols,
+					(quoteArrayOfObjectsData) => {
+						quoteArrayOfObjectsData?.forEach(quoteData => {
+							const { n, s, v } = quoteData;
+							const currentSymbol = n;
+							if (s === 'ok' && v.trade_loaded) {
+								const { original_name, lp, ch, chp, volume } = v;
+								const response = {
+									symbol: original_name,
+									lastPrice: parseFloat(lp),
+									changeUsd: parseFloat(ch),
+									changePercent: parseFloat(chp),
+									volume: formatVolume(volume)
 								}
-							});
-						},
-						"watchlist_unique_id"
-					);
-				}
+								// console.log(response);
 
-				// window.subscribeToWatchlist();
+								// Publish to central DataService
+								window.DataService.publish('watchlist_update', response);
+							}
+						});
+					},
+					"watchlist_unique_id"
+				);
 			});
 
 			window.frames[0].focus();
