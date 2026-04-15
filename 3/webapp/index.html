@@ -30,6 +30,9 @@
 			}
 		};
 
+		// Default Enabled Watchlist Volumn Column 
+		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
+
 		// Centralized Chart Configuration
 		window.TVChartConfig = window.TVChartConfig || {
 			symbol: "BINANCE:BTCUSDT.P",
