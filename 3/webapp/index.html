@@ -359,7 +359,6 @@
 				let tradingSymbols = [];
 				let isSubscribed = false;
 
-				// 1. Helper: Volume Formatter
 				const formatVolume = (vol) => {
 					if (vol === undefined || vol === null || isNaN(vol)) return '-';
 					const v = parseFloat(vol);
@@ -369,7 +368,6 @@
 					return v.toFixed(0);
 				};
 
-				// 2. Watchlist Fetching
 				try {
 					const watchlistApi = await widget.watchList();
 					const activeId = watchlistApi.getActiveListId();
@@ -379,53 +377,32 @@
 					}
 				} catch (e) { console.error(e); }
 
-				// 3. Main Subscription Function
-				window.subscribeToWatchlist = function () {
-					if (isSubscribed || !tradingSymbols.length) return false;
+				const fastSymbols = ["BINANCE:BTCUSDT.P"];
 
+				window.subscribeToWatchlist = function () {
 					datafeed.subscribeQuotes(
 						tradingSymbols,
-						['lp', 'ch', 'chp', 'v', 'volume'],
-						(quoteData) => {
-							if (!quoteData) return;
-
-							const garbageKeys = new Set(["ch", "chp", "lp", "v", "volume", "ok"]);
-							const formatValue = (val) => (typeof val === 'number' ? val.toFixed(2) : '-');
-
-							quoteData.forEach((item, index) => {
-								const { v } = item;
-								if (!v) return;
-
-								// --- SYMBOL CLEANING LOGIC ---
-								let sName = item.s || item.n || '';
-								const isGarbage = (s) => !s || garbageKeys.has(s.toLowerCase());
-
-								// Agar name garbage hai, fallback to tradingSymbols array
-								if (isGarbage(sName)) {
-									sName = tradingSymbols[index] || '-';
+						fastSymbols,
+						(quoteArrayOfObjectsData) => {
+							quoteArrayOfObjectsData?.forEach(quoteData => {
+								const { n, s, v } = quoteData;
+								const currentSymbol = n;
+								if (s === 'ok' && v.trade_loaded) {
+									const { original_name, lp, ch, chp, volume } = v;
+									const response = {
+										symbol: original_name,
+										lastPrice: parseFloat(lp),
+										changeUsd: parseFloat(ch),
+										changePercent: parseFloat(chp),
+										volume: formatVolume(volume)
+									}
+									console.log(response);
 								}
-
-								// Volume key check (v.v ya v.volume)
-								const rawVol = v.v ?? v.volume;
-
-								const data = {
-									symbol: isGarbage(sName) ? '-' : sName,
-									last: formatValue(v.lp),
-									changeUsd: formatValue(v.ch),
-									changePercent: formatValue(v.chp),
-									vol: rawVol !== undefined ? formatVolume(rawVol) : '-'
-								};
-
-								console.log(data);
 							});
 						},
-						'watchlist_continuous_sub'
+						"watchlist_unique_id"
 					);
-
-					isSubscribed = true;
-					console.log("Subscription Activated!");
-					return true;
-				};
+				}
 
 				window.subscribeToWatchlist();
 			});
