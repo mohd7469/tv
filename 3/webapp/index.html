@@ -13,33 +13,33 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
-		// Centralized Data Service (Event Bus)
-		window.DataService = {
-			_listeners: {},
-			subscribe: function (event, callback) {
-				if (!this._listeners[event]) {
-					this._listeners[event] = [];
+		if (!window.DataService) {
+			window.DataService = {
+				_listeners: {},
+				subscribe: function (event, callback) {
+					if (!this._listeners[event]) {
+						this._listeners[event] = [];
+					}
+					if (this._listeners[event].includes(callback)) {
+						console.warn(`[DataService] Already subscribed to: ${event}`);
+						return;
+					}
+					this._listeners[event].push(callback);
+				},
+				unsubscribe: function (event, callback) {
+					if (!this._listeners[event]) return;
+					this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
+					console.log(`[DataService] Unsubscribed from: ${event}`);
+				},
+				publish: function (event, data) {
+					if (this._listeners[event]) {
+						this._listeners[event].forEach(callback => callback(data));
+					}
 				}
-
-				// Check: Kya ye callback pehle se shamil hai?
-				if (this._listeners[event].includes(callback)) {
-					console.warn(`[DataService] Already subscribed to: ${event}`);
-					return; // Yahin se wapis ho jao, dobara add mat karo
-				}
-
-				this._listeners[event].push(callback);
-			},
-			unsubscribe: function (event, callback) {
-				if (!this._listeners[event]) return;
-				this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
-				console.log(`[DataService] Unsubscribed from: ${event}`);
-			},
-			publish: function (event, data) {
-				if (this._listeners[event]) {
-					this._listeners[event].forEach(callback => callback(data));
-				}
-			}
-		};
+			};
+			console.log("[DataService] Initialized");
+			console.log("[DataService] Use window.DataService.subscribe('event_name', callbackFn) to use realtime updates");
+		}
 
 		function getParameterByName(name) {
 			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
