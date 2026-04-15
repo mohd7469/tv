@@ -3,8 +3,6 @@
 
 <head>
 	<title>TradingView Trading Platform demo</title>
-
-	<!-- Fix for iOS Safari zooming bug -->
 	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0" />
 
 	<script type="text/javascript" src="charting_library/charting_library.standalone.js"></script>
@@ -14,58 +12,38 @@
 
 	<script type="text/javascript">
 		// Centralized Data Service
-		if (!window.TVDataService) {
-			window.TVDataService = {
-				_listeners: {},
-				subscribe: function (event, callback) {
-					if (!this._listeners[event]) {
-						this._listeners[event] = [];
-					}
-					if (this._listeners[event].includes(callback)) {
-						console.warn(`[TVDataService] Already subscribed to: ${event}`);
-						return;
-					}
-					this._listeners[event].push(callback);
-				},
-				unsubscribe: function (event, callback) {
-					if (!this._listeners[event]) return;
-					this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
-					console.log(`[TVDataService] Unsubscribed from: ${event}`);
-				},
-				publish: function (event, data) {
-					if (this._listeners[event]) {
-						this._listeners[event].forEach(callback => callback(data));
-					}
+		window.TVDataService = window.TVDataService || {
+			_listeners: {},
+			subscribe: function (event, callback) {
+				if (!this._listeners[event]) this._listeners[event] = [];
+				if (this._listeners[event].includes(callback)) return;
+				this._listeners[event].push(callback);
+			},
+			unsubscribe: function (event, callback) {
+				if (!this._listeners[event]) return;
+				this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
+			},
+			publish: function (event, data) {
+				if (this._listeners[event]) {
+					this._listeners[event].forEach(callback => callback(data));
 				}
-			};
-			console.log("[TVDataService] Initialized");
-			console.log("[TVDataService] Use window.TVDataService.subscribe('event_name', callbackFn) to use realtime updates");
-		}
+			}
+		};
 
-		// Centralized Configuration
-		if (!window.TVChartConfig) {
-			window.TVChartConfig = {
-				symbol: "BYBIT:BTCUSDT.P",
-				timeframe: "1",
-				watchList: [
-					"BYBIT:BTCUSDT.P",
-					"BINANCE:ETHUSDT.P",
-					"OKX:SOLUSDT.P"
-				]
-			};
-		}
+		// Centralized Chart Configuration
+		window.TVChartConfig = window.TVChartConfig || {
+			symbol: "BINANCE:BTCUSDT.P",
+			timeframe: "1",
+			watchList: [
+				"BINANCE:BTCUSDT.P",
+				"BYBIT:ETHUSDT.P",
+				"OKX:SOLUSDT.P"
+			]
+		};
 
-		function getParameterByName(name) {
-			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-			var regex = new RegExp('[\\?&]' + name + '=([^&#]*)'),
-				results = regex.exec(location.search);
-			return results === null
-				? ''
-				: decodeURIComponent(results[1].replace(/\+/g, ' '));
-		}
-
-		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
-		const customCSS = `#documentation-toolbar-button {
+		// Style Configuration
+		window.TVChartStyle = {
+			customCSS: `#documentation-toolbar-button {
 				all: unset;
 				position: relative;
 				color: #FFF;
@@ -78,278 +56,162 @@
 				background: #2962FF;
 				cursor: pointer;
 			}
-			#documentation-toolbar-button:hover {
-				background: #1E53E5;
-			}
-			#documentation-toolbar-button:active {
-				background: #1948CC;
-			}
-			#theme-toggle {
-				display: flex;
-				flex-direction: row;
-				align-items: center;
-				gap: 12px;
-			}
-			.switcher {
-				display: inline-block;
-				position: relative;
-				flex: 0 0 auto;
-				width: 38px;
-				height: 20px;
-				vertical-align: middle;
-				z-index: 0;
-				-webkit-tap-highlight-color: transparent;
-			}
+			#documentation-toolbar-button:hover { background: #1E53E5; }
+			#documentation-toolbar-button:active { background: #1948CC; }
+			#theme-toggle { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+			.switcher { display: inline-block; position: relative; width: 38px; height: 20px; vertical-align: middle; }
+			.switcher input { position: absolute; opacity: 0; width: 100%; height: 100%; z-index: 1; cursor: pointer; }
+			.switcher .thumb-wrapper { display: block; border-radius: 20px; position: relative; height: 100%; width: 100%; }
+			.switcher .track { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 20px; background-color: #a3a6af; }
+			#theme-switch:checked + .thumb-wrapper .track { background-color: #2962ff; }
+			.switcher .thumb { display: block; width: 14px; height: 14px; border-radius: 14px; background: #fff; transition: transform 250ms ease-out; transform: translate(3px, 3px); }
+			.switcher input:checked + .thumb-wrapper .thumb { transform: translate(21px, 3px); }
+			#tv_chart_container { height: 100vh; width: 100%; }`
+		};
 
-			.switcher input {
-				position: absolute;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				opacity: 0;
-				z-index: 1;
-				cursor: default;
-			}
+		/**
+		 * --- UTILITY FUNCTIONS ---
+		 */
 
-			.switcher .thumb-wrapper {
-				display: block;
-				border-radius: 20px;
-				position: relative;
-				z-index: 0;
-				width: 100%;
-				height: 100%;
-			}
-
-			.switcher .track {
-				position: absolute;
-				left: 0;
-				top: 0;
-				width: 100%;
-				height: 100%;
-				border-radius: 20px;
-				background-color: #a3a6af;
-			}
-
-			#theme-switch:checked + .thumb-wrapper .track {
-				background-color: #2962ff;
-			}
-
-			.switcher .thumb {
-				display: block;
-				width: 14px;
-				height: 14px;
-				border-radius: 14px;
-				transition-duration: 250ms;
-				transition-property: transform;
-				transition-timing-function: ease-out;
-				transform: translate(3px, 3px);
-				background: #ffffff;
-			}
-
-			[dir=rtl] .switcher .thumb {
-				transform: translate(-3px, 3px);
-			}
-
-			.switcher input:checked + .thumb-wrapper .thumb {
-				transform: translate(21px, 3px);
-			}
-
-			[dir=rtl] .switcher input:checked + .thumb-wrapper .thumb {
-				transform: translate(-21px, 3px);
-			}
-
-			#documentation-toolbar-button:focus-visible:before,
-			.switcher:focus-within:before {
-				content: '';
-				display: block;
-				position: absolute;
-				top: -2px;
-				right: -2px;
-				bottom: -2px;
-				left: -2px;
-				border-radius: 16px;
-				outline: #2962FF solid 2px;
-			}`;
-
-		async function fetchNews() {
-			const response = await fetch('https://demo-feed-data.tradingview.com/tv_news');
-			const xml = await response.text();
-			const parser = new DOMParser();
-			const dom = parser.parseFromString(xml, 'application/xml');
-			const items = dom.querySelectorAll('item');
-
-			return Array.from(items).map(item => {
-				const title = item.querySelector('title').textContent;
-				const link = item.querySelector('link').textContent;
-				const description = item.querySelector('description')?.textContent ?? '';
-				const pubDate = item.querySelector('pubDate').textContent;
-				const contentNode = Array.from(item.childNodes).find(el => el.tagName === 'content:encoded');
-				let decodedContent = '';
-				if (contentNode) {
-					const tempElement = document.createElement("div");
-					tempElement.innerHTML = contentNode.textContent ?? '';
-					decodedContent = tempElement.innerText;
-				}
-				return {
-					// fullDescription: decodedContent,
-					link,
-					published: new Date(pubDate).valueOf(),
-					shortDescription: decodedContent ? (decodedContent.slice(0, 150) + '...') : '',
-					provider: {
-						id: 'tradingview',
-						name: 'TradingView',
-					},
-					title,
-				};
-			});
+		function getParameterByName(name) {
+			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+			const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+			const results = regex.exec(location.search);
+			return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 		}
 
-		function initOnReady() {
-			const cssBlob = new Blob([customCSS], {
-				type: "text/css",
-			});
-			const cssBlobUrl = URL.createObjectURL(cssBlob);
+		function formatVolume(vol) {
+			if (vol === undefined || vol === null || isNaN(vol)) return '-';
+			const v = parseFloat(vol);
+			if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+			if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+			if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+			return v.toFixed(0);
+		}
 
-			let setDemoDatafeedStatus = undefined;
+		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
 
-			const formatVolume = (vol) => {
-				if (vol === undefined || vol === null || isNaN(vol)) return '-';
-				const v = parseFloat(vol);
-				if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
-				if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
-				if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
-				return v.toFixed(0);
-			};
+		async function fetchNews() {
+			try {
+				const response = await fetch('https://demo-feed-data.tradingview.com/tv_news');
+				const xml = await response.text();
+				const parser = new DOMParser();
+				const dom = parser.parseFromString(xml, 'application/xml');
+				const items = dom.querySelectorAll('item');
 
-			class CustomDatafeed extends TradingView.TradingViewDatafeed {
-				constructor() {
-					super();
-					this.historicalBars = [];      // Buffer for history
-					this.historicalNumber = 5;     // Number of bars to retrieve
-					this.currentResolution = null; // Track current timeframe/resolution
-				}
-
-				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
-					if (typeof setDemoDatafeedStatus === 'function') {
-						setDemoDatafeedStatus(symbolName);
+				return Array.from(items).map(item => {
+					const contentNode = Array.from(item.childNodes).find(el => el.tagName === 'content:encoded');
+					let decodedContent = '';
+					if (contentNode) {
+						const temp = document.createElement("div");
+						temp.innerHTML = contentNode.textContent ?? '';
+						decodedContent = temp.innerText;
 					}
-					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
-				}
+					return {
+						link: item.querySelector('link').textContent,
+						published: new Date(item.querySelector('pubDate').textContent).valueOf(),
+						shortDescription: decodedContent ? (decodedContent.slice(0, 150) + '...') : '',
+						provider: { id: 'tradingview', name: 'TradingView' },
+						title: item.querySelector('title').textContent,
+					};
+				});
+			} catch (e) {
+				console.error("News Fetch Error:", e);
+				return [];
+			}
+		}
 
-				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
-					// --- CHANGE 1: TIMEFRAME CHANGE DETECTION ---
-					// Agar timeframe change hua hai (e.g. 1m se 5m), to buffer clear karein
-					if (this.currentResolution !== resolution) {
-						this.historicalBars = [];
-						this.currentResolution = resolution;
-					}
+		/**
+		 * --- CUSTOM DATAFEED CLASS ---
+		 */
 
-					try {
-						super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
-							if (bars && bars.length > 0) {
-								// Sirf initial load (firstDataRequest) par buffer initialize karein
-								if (periodParams.firstDataRequest) {
-									this.historicalBars = [...bars];
-								}
-								onResult(bars, meta);
-							}
-						}, onError);
-					} catch (e) {
-						console.log("getBars error:", e);
-					}
-				}
-
-				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
-					try {
-						const onCallback = (bar) => {
-							// Safety check: Ensure resolution matches
-							if (this.currentResolution !== resolution) return;
-
-							// 1: BUFFER UPDATE (for sliding window)
-							if (this.historicalBars.length > 0) {
-								const lastBarInArray = this.historicalBars[this.historicalBars.length - 1];
-
-								if (bar.time > lastBarInArray.time) {
-									// Nayi candle shuru hui, array mein push karein
-									this.historicalBars.push(bar);
-								} else {
-									// Purani candle update ho rahi hai, last index replace karein
-									this.historicalBars[this.historicalBars.length - 1] = bar;
-								}
-
-								// Memory limit (300-500 bars are enough)
-								if (this.historicalBars.length > 500) this.historicalBars.shift();
-							}
-
-							// 2. UNIFIED FORMATTING
-							const liveBar = {
-								time: bar.time,
-								open: bar.open,
-								high: bar.high,
-								low: bar.low,
-								close: bar.close,
-								volume: bar.volume,
-							};
-
-							// 3. SLIDING WINDOW (Get historicalNumber amount of bars)
-							const recentHistory = this.historicalBars.slice(-this.historicalNumber).map(b => ({
-								time: b.time,
-								open: b.open,
-								high: b.high,
-								low: b.low,
-								close: b.close,
-								volume: b.volume
-							}));
-
-							// 4. UNIFIED CONSOLE LOG
-							const unifiedData = {
-								symbol: symbolInfo.full_name,
-								resolution: resolution,
-								data: [...recentHistory]
-							};
-
-							// replace last index with live one for real-time accuracy
-							if (unifiedData.data.length > 0) {
-								unifiedData.data[unifiedData.data.length - 1] = liveBar;
-							}
-
-							// format entire bars volumn
-							unifiedData.data.forEach(bar => bar.volume = formatVolume(bar.volume));
-
-							// console.log("Candle Data:", unifiedData);
-
-							// Publish to central TVDataService
-							window.TVDataService.publish('candle_update', unifiedData);
-
-							onTick(bar);
-						}
-
-						super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
-					} catch (e) {
-						console.log("subscribeBars error:", e);
-					}
-				}
+		class CustomDatafeed extends TradingView.TradingViewDatafeed {
+			constructor() {
+				super();
+				this.historicalBars = [];
+				this.historicalNumber = 5;
+				this.currentResolution = null;
+				this.onSymbolChange = null;
 			}
 
+			resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
+				if (this.onSymbolChange) this.onSymbolChange(symbolName);
+				// Clear historical buffer on symbol change to avoid data leaks
+				this.historicalBars = [];
+				super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
+			}
+
+			getBars(symbolInfo, resolution, periodParams, onResult, onError) {
+				// Clear buffer on resolution change or initial data request for safety
+				if (this.currentResolution !== resolution || periodParams.firstDataRequest) {
+					this.historicalBars = [];
+					this.currentResolution = resolution;
+				}
+				super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
+					if (bars && bars.length > 0) {
+						if (periodParams.firstDataRequest) this.historicalBars = [...bars];
+						onResult(bars, meta);
+					}
+				}, onError);
+			}
+
+			subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
+				const onCallback = (bar) => {
+					if (this.currentResolution !== resolution) return;
+
+					// Sliding window update
+					if (this.historicalBars.length > 0) {
+						const last = this.historicalBars[this.historicalBars.length - 1];
+						// Nayi candle shuru hui, array mein push karein
+						if (bar.time > last.time) this.historicalBars.push(bar);
+						// Purani candle update ho rahi hai, last index replace karein
+						else this.historicalBars[this.historicalBars.length - 1] = bar;
+						// Memory limit (300-500 bars are enough)
+						if (this.historicalBars.length > 500) this.historicalBars.shift();
+					}
+
+					// Prepare unified payload
+					const unifiedData = {
+						symbol: symbolInfo.full_name,
+						resolution: resolution,
+						data: this.historicalBars.slice(-this.historicalNumber).map(b => ({ ...b }))
+					};
+					if (unifiedData.data.length > 0) unifiedData.data[unifiedData.data.length - 1] = { ...bar };
+					// format entire bars volumn
+					unifiedData.data.forEach(b => b.volume = formatVolume(b.volume));
+
+					window.TVDataService.publish('candle_updates', unifiedData);
+					onTick(bar);
+				};
+				super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
+			}
+		}
+
+		/**
+		 * --- MAIN APP INITIALIZATION ---
+		 */
+
+		async function initOnReady() {
 			const datafeed = new CustomDatafeed();
 
-			const isDark =
-				window.matchMedia &&
-				window.matchMedia('(prefers-color-scheme: dark)').matches;
+			// Setup CSS
+			const cssBlob = new Blob([window.TVChartStyle.customCSS], { type: "text/css" });
+			const cssBlobUrl = URL.createObjectURL(cssBlob);
+
+			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 			const theme = getParameterByName('theme') || (isDark ? 'dark' : 'light');
-			var widget = (window.tvWidget = new TradingView.widget({
-				// debug: true, // uncomment this line to see Library errors and warnings in the console
+
+			// Initialize Widget
+			const widget = window.tvWidget = new TradingView.widget({
 				fullscreen: true,
 				symbol: window.TVChartConfig.symbol,
 				interval: window.TVChartConfig.timeframe,
 				container: 'tv_chart_container',
-				//	BEWARE: no trailing slash is expected in feed URL
 				datafeed: datafeed,
 				library_path: 'charting_library/',
 				locale: getParameterByName('lang') || 'en',
 				custom_css_url: cssBlobUrl,
-
+				theme: theme,
 				disabled_features: [
 					'use_localstorage_for_settings',
 					'open_account_manager',
@@ -379,8 +241,6 @@
 				charts_storage_api_version: '1.1',
 				client_id: 'trading_platform_demo',
 				user_id: 'public_user',
-				theme: theme,
-
 				widgetbar: {
 					details: true,
 					news: true,
@@ -390,24 +250,11 @@
 						default_symbols: window.TVChartConfig.watchList,
 					},
 				},
-
-				news_provider: async function getNews(symbol, callback) {
-					let newsItems = [];
-					try {
-						newsItems = await fetchNews();
-					} catch (e) {
-						console.error(e);
-					}
-					callback({
-						title: 'Top News Stories',
-						newsItems
-					});
+				news_provider: async (symbol, callback) => {
+					// const newsItems = await fetchNews();
+					callback({ title: 'Market Insights', newsItems: [] });
 				},
-
-				broker_factory: function (host) {
-					return new Brokers.BrokerDemo(host, datafeed);
-				},
-
+				broker_factory: (host) => new Brokers.BrokerDemo(host, datafeed),
 				broker_config: {
 					configFlags: {
 						supportNativeReversePosition: true,
@@ -427,123 +274,62 @@
 						{ name: 'GTC', value: 'GTC' },
 					],
 				},
-			}));
+			});
 
-			setDemoDatafeedStatus = function (symbol) {
+			// Datafeed Status UI
+			datafeed.onSymbolChange = (symbol) => {
 				widget
 					.customSymbolStatus()
 					.symbol(symbol)
 					.setColor('#00BCD4')
 					.setVisible(true)
 					.setIcon(codeSvg(''))
-					.setTooltip('Datafeed Connected')
-					.setDropDownContent([
-						{
-							title: 'Demo Datafeed',
-							icon: codeSvg('background-color: rgba(0, 188, 212, 0.15); border-radius: 100%'),
-							content: [
-								'Not all symbols are fully supported.',
-							],
-						},
-					]);
+					.setTooltip('Connected')
+					.setDropDownContent([{
+						title: 'Demo Datafeed',
+						icon: codeSvg('background-color: rgba(0, 188, 212, 0.1); border-radius: 100%'),
+						content: ['Real-time data streaming active.']
+					}]);
 			};
 
+			// Header Buttons
 			widget.headerReady().then(() => {
-				const themeToggleEl = widget.createButton({
-					useTradingViewStyle: false,
-					align: 'right',
-				});
-				themeToggleEl.dataset.internalAllowKeyboardNavigation = 'true';
-				themeToggleEl.id = 'theme-toggle';
-				themeToggleEl.innerHTML = `<label for="theme-switch" id="theme-switch-label">Dark Mode</label>
-					<div class="switcher">
-						<input type="checkbox" id="theme-switch" tabindex="-1">
-						<span class="thumb-wrapper">
-							<span class="track"></span>
-							<span class="thumb"></span>
-						</span>
-					</div>`;
-				themeToggleEl.title = 'Toggle theme';
-				const checkboxEl = themeToggleEl.querySelector('#theme-switch');
-				checkboxEl.checked = theme === 'dark';
-				checkboxEl.addEventListener('change', function () {
-					const themeToSet = this.checked ? 'dark' : 'light'
-					widget.changeTheme(themeToSet, { disableUndo: true });
+				// Theme Toggle
+				const themeBtn = widget.createButton({ align: 'right' });
+				themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+					Dark Mode <div class="switcher">
+						<input type="checkbox" id="theme-switch" ${theme === 'dark' ? 'checked' : ''}>
+						<span class="thumb-wrapper"><span class="track"></span><span class="thumb"></span></span>
+					</div></label>`;
+				themeBtn.querySelector('#theme-switch').addEventListener('change', (e) => {
+					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
 				});
 
-				const element = widget.createButton({
-					useTradingViewStyle: false,
-					align: 'right',
-				});
-				element.dataset.internalAllowKeyboardNavigation = 'true';
-				element.innerHTML = `<button id="documentation-toolbar-button" tabindex="-1">Documentation</button>`;
-				element.title = 'View the documentation site';
-				element.addEventListener('click', () => {
-					window.open(
-						'https://www.tradingview.com/charting-library-docs/',
-						'_blank'
-					);
-				});
-
-				const themeSwitchCheckbox = themeToggleEl.querySelector('#theme-switch');
-				const documentationButton = element.querySelector('#documentation-toolbar-button');
-
-				const handleRovingTabindexMainElement = (e) => {
-					e.target.tabIndex = 0;
-				};
-				const handleRovingTabindexSecondaryElement = (e) => {
-					e.target.tabIndex = -1;
-				};
-
-				themeSwitchCheckbox.addEventListener('roving-tabindex:main-element', handleRovingTabindexMainElement);
-				themeSwitchCheckbox.addEventListener('roving-tabindex:secondary-element', handleRovingTabindexSecondaryElement);
-				documentationButton.addEventListener('roving-tabindex:main-element', handleRovingTabindexMainElement);
-				documentationButton.addEventListener('roving-tabindex:secondary-element', handleRovingTabindexSecondaryElement);
 			});
 
-			widget.onChartReady(async () => {
-				let tradingSymbols = [];
-				let isSubscribed = false;
-
-				try {
-					const watchlistApi = await widget.watchList();
-					const activeId = watchlistApi.getActiveListId();
-					const allLists = watchlistApi.getAllLists();
-					if (allLists && allLists[activeId]) {
-						tradingSymbols = allLists[activeId].symbols.filter(s => !s.startsWith('###'));
-					}
-				} catch (e) { console.error(e); }
-
-				const fastSymbols = [window.TVChartConfig.symbol];
-
+			// Watchlist Data Stream
+			widget.onChartReady(() => {
 				datafeed.subscribeQuotes(
 					window.TVChartConfig.watchList,
-					fastSymbols,
-					(quoteArrayOfObjectsData) => {
-						quoteArrayOfObjectsData?.forEach(quoteData => {
-							const { n, s, v } = quoteData;
-							const currentSymbol = n;
-							if (s === 'ok' && v.trade_loaded) {
-								const { original_name, lp, ch, chp, volume } = v;
-								const response = {
-									symbol: original_name,
-									lastPrice: parseFloat(lp),
-									changeUsd: parseFloat(ch),
-									changePercent: parseFloat(chp),
-									volume: formatVolume(volume)
-								}
-								// console.log(response);
-
-								// Publish to central TVDataService
-								window.TVDataService.publish('watchlist_update', response);
+					[window.TVChartConfig.symbol], // fastSymbols
+					(data) => {
+						data?.forEach(quote => {
+							if (quote.s === 'ok' && quote.v.trade_loaded) {
+								window.TVDataService.publish('watchlist_updates', {
+									symbol: quote.v.original_name,
+									lastPrice: parseFloat(quote.v.lp),
+									changeUsd: parseFloat(quote.v.ch),
+									changePercent: parseFloat(quote.v.chp),
+									volume: formatVolume(quote.v.volume)
+								});
 							}
 						});
 					},
-					"watchlist_unique_id"
+					"global_watchlist_id"
 				);
 			});
 
-			window.frames[0].focus();
+			window.frames[0]?.focus();
 		}
 
 		window.addEventListener('DOMContentLoaded', initOnReady, false);
