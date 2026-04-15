@@ -168,46 +168,101 @@
 				type: "text/css",
 			});
 			const cssBlobUrl = URL.createObjectURL(cssBlob);
+
 			let setDemoDatafeedStatus = undefined;
+
 			class CustomDatafeed extends TradingView.TradingViewDatafeed {
-				resolveSymbol() {
-					if (setDemoDatafeedStatus) {
-						setDemoDatafeedStatus(arguments[0]);
+				constructor() {
+					super();
+					this.historicalBars = [];      // Buffer for history
+					this.historicalNumber = 5;     // Number of bars to retrieve
+				}
+
+				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
+					if (typeof setDemoDatafeedStatus === 'function') {
+						setDemoDatafeedStatus(symbolName);
 					}
-					super.resolveSymbol(
-						arguments[0],
-						arguments[1],
-						arguments[2],
-						arguments[3]
-					);
+
+					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
+				}
+
+				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
+					try {
+						super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
+							if (bars && bars.length > 0) {
+								// History save ki
+								this.historicalBars = [...bars];
+								onResult(bars, meta);
+							}
+						}, onError);
+					} catch (e) {
+						console.log("getBars error:", e);
+					}
 				}
 
 				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
+					try {
+						const onCallback = (bar) => {
+							// 1: BUFFER UPDATE (for sliding window)
+							if (this.historicalBars.length > 0) {
+								const lastBarInArray = this.historicalBars[this.historicalBars.length - 1];
 
-					super.subscribeBars(
-						symbolInfo,
-						resolution,
-						(bar) => {
-							const candleData = {
-								symbol: symbolInfo.name,
+								if (bar.time > lastBarInArray.time) {
+									// Nayi candle shuru hui (e.g., 8 ke baad 9 aayi), to array mein add karo
+									this.historicalBars.push(bar);
+								} else {
+									// Purani candle hi update ho rahi hai, to aakhri index update karo
+									this.historicalBars[this.historicalBars.length - 1] = bar;
+								}
+
+								// Memory manage karne ke liye (Optional)
+								if (this.historicalBars.length > 500) this.historicalBars.shift();
+							}
+
+							// 2. UNIFIED FORMATTING
+							const liveBar = {
+								time: bar.time,
 								open: bar.open,
 								high: bar.high,
 								low: bar.low,
 								close: bar.close,
 								volume: bar.volume,
-								time: bar.time,
-							}
+							};
 
-							// console.log("candleData:", candleData);
+							// History se bars nikaali (Wo pehle se hi isi format mein hain)
+							const recentHistory = this.historicalBars.slice(-(this.historicalNumber)).map(b => ({
+								time: b.time,
+								open: b.open,
+								high: b.high,
+								low: b.low,
+								close: b.close,
+								volume: b.volume
+							}));
+
+							// UNIFIED CONSOLE LOG
+							const unifiedData = {
+								symbol: symbolInfo.name,
+								resolution: resolution,
+								data: [...recentHistory]
+							};
+
+							// replace last index with live one 
+							unifiedData.data[unifiedData.data.length - 1] = liveBar;
+
+							console.log("Candle Data:", unifiedData);
 
 							onTick(bar);
-						},
-						listenerGuid,
-						onResetCacheNeededCallback
-					);
+						}
+
+						super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
+					} catch (e) {
+						console.log("subscribeBars error:", e);
+					}
 				}
 			}
+
 			const datafeed = new CustomDatafeed();
+
 			const isDark =
 				window.matchMedia &&
 				window.matchMedia('(prefers-color-scheme: dark)').matches;
