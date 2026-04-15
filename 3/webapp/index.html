@@ -385,30 +385,34 @@
 
 					datafeed.subscribeQuotes(
 						tradingSymbols,
-						['lp', 'ch', 'chp', 'v', 'volume'], // Dono keys mangwa li
+						['lp', 'ch', 'chp', 'v', 'volume'],
 						(quoteData) => {
 							if (!quoteData) return;
 
+							const garbageKeys = new Set(["ch", "chp", "lp", "v", "volume", "ok"]);
+							const formatValue = (val) => (typeof val === 'number' ? val.toFixed(2) : '-');
+
 							quoteData.forEach((item, index) => {
-								const v = item.v;
+								const { v } = item;
 								if (!v) return;
 
-								// FIX 1: Symbol Name Fix
-								// Agar 's' ya 'n' mein "ok" hai, toh hamari list se index ke mutabiq uthao
-								let sName = item.s && item.s !== 'ok' ? item.s : (item.n && item.n !== 'ok' ? item.n : null);
-								if (!sName) {
-									sName = tradingSymbols[index] || 'Unknown';
+								// --- SYMBOL CLEANING LOGIC ---
+								let sName = item.s || item.n || '';
+								const isGarbage = (s) => !s || garbageKeys.has(s.toLowerCase());
+
+								// Agar name garbage hai, fallback to tradingSymbols array
+								if (isGarbage(sName)) {
+									sName = tradingSymbols[index] || '-';
 								}
 
-								// FIX 2: Volume Fix (Multiple keys check)
-								// Baaz dafa volume 'v' mein hota hai, baaz dafa 'volume' mein
-								const rawVol = v.v !== undefined ? v.v : (v.volume !== undefined ? v.volume : undefined);
+								// Volume key check (v.v ya v.volume)
+								const rawVol = v.v ?? v.volume;
 
 								const data = {
-									symbol: sName,
-									last: v.lp !== undefined ? v.lp.toFixed(2) : '-',
-									changeUsd: v.ch !== undefined ? v.ch.toFixed(2) : '-',
-									changePercent: v.chp !== undefined ? v.chp.toFixed(2) : '-',
+									symbol: isGarbage(sName) ? '-' : sName,
+									last: formatValue(v.lp),
+									changeUsd: formatValue(v.ch),
+									changePercent: formatValue(v.chp),
 									vol: rawVol !== undefined ? formatVolume(rawVol) : '-'
 								};
 
