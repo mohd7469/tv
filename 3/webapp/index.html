@@ -164,6 +164,49 @@
 			}
 		}
 
+		let indicatorCache = null;
+
+		async function syncIndicatorValues(bar) {
+			const chart = window.tvWidget?.chart();
+
+			if (!chart || !bar) return {};
+
+			try {
+				// Fetch dataset once per tick cycle
+				if (!indicatorCache) {
+					const studies = chart.getAllStudies();
+					const studiesMap = new Map(studies.map(s => [s.id, s.name]));
+
+					const result = await chart.exportData({
+						includeTime: true,
+						includeSeries: false,
+						includeStudies: true,
+					});
+
+					const rowMap = new Map();
+					result.data.forEach(row => rowMap.set(row[0], row));
+					indicatorCache = { schema: result.schema, rowMap, studiesMap };
+				}
+
+				const indicators = {};
+				const row = indicatorCache.rowMap.get(bar.time / 1000);
+				if (row) {
+					indicatorCache.schema.forEach((col, i) => {
+						if (col.sourceType === 'study') {
+							const realName = indicatorCache.studiesMap.get(col.sourceId);
+							if (realName) {
+								indicators[realName] = row[i];
+							}
+						}
+					});
+				}
+				return indicators;
+			} catch (e) {
+				console.error("Per-bar indicator error:", e);
+				return {};
+			}
+		}
+
 		/**
 		 * --- CUSTOM DATAFEED CLASS ---
 		 */
@@ -219,11 +262,24 @@
 						resolution: resolution,
 						data: this.historicalBars.slice(-this.historicalNumber).map(b => ({ ...b }))
 					};
+
 					if (unifiedData.data.length > 0) unifiedData.data[unifiedData.data.length - 1] = { ...bar };
+
 					// format entire bars volumn
 					unifiedData.data.forEach(b => b.volume = formatVolume(b.volume));
 
-					window.TVDataService.publish('candle_updates', unifiedData);
+					// Reset cache for this specific tick update
+					indicatorCache = null;
+
+					const promises = unifiedData.data.map(bar => {
+						return syncIndicatorValues(bar).then(data => {
+							bar['indicators'] = data;
+						});
+					});
+
+					// Wait for all iterations and then publish
+					Promise.all(promises).then(() => window.TVDataService.publish('candle_updates', unifiedData));
+
 					onTick(bar);
 				};
 				super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
