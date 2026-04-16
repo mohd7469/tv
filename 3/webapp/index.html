@@ -41,6 +41,10 @@
 				"BINANCE:BTCUSDT.P",
 				"BYBIT:ETHUSDT.P",
 				"OKX:SOLUSDT.P"
+			],
+			indicators: [
+				// "Volume",
+				// "Relative Strength Index"
 			]
 		};
 
@@ -121,6 +125,42 @@
 			} catch (e) {
 				console.error("News Fetch Error:", e);
 				return [];
+			}
+		}
+
+		/**
+		 * --- INDICATOR UTILITIES ---
+		 */
+
+		async function syncIndicators(chart, desiredIndicators) {
+			try {
+				const currentActive = chart.getAllStudies();
+				const activeNames = currentActive.map(s => s.name);
+
+				// 1. Remove indicators that are NO LONGER in the updated list
+				for (const study of currentActive) {
+					if (!desiredIndicators.includes(study.name)) {
+						try {
+							await chart.removeEntity(study.id);
+						} catch (e) {
+							console.error(`Failed to remove indicator ${study.name}:`, e);
+						}
+					}
+				}
+
+				// 2. Add indicators that are NEW
+				for (const name of desiredIndicators) {
+					if (!activeNames.includes(name)) {
+						try {
+							await chart.createStudy(name, false, false);
+							console.log(`Indicator added: ${name}`);
+						} catch (e) {
+							console.error(`Failed to add indicator ${name}:`, e);
+						}
+					}
+				}
+			} catch (error) {
+				console.error("Critical error in syncIndicators:", error);
 			}
 		}
 
@@ -311,7 +351,14 @@
 			});
 
 			// Watchlist Data Stream
-			widget.onChartReady(() => {
+			widget.onChartReady(async () => {
+				const chart = widget.chart();
+
+				// Initial Indicator Sync
+				if (window.TVChartConfig.indicators) {
+					await syncIndicators(chart, window.TVChartConfig.indicators);
+				}
+
 				datafeed.subscribeQuotes(
 					window.TVChartConfig.watchList,
 					[window.TVChartConfig.symbol], // fastSymbols
