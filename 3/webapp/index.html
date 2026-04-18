@@ -11,24 +11,27 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
-		// Centralized Data Service
-		window.TVDataService = window.TVDataService || {
-			_listeners: {},
-			subscribe: function (event, callback) {
-				if (!this._listeners[event]) this._listeners[event] = [];
-				if (this._listeners[event].includes(callback)) return;
-				this._listeners[event].push(callback);
-			},
-			unsubscribe: function (event, callback) {
-				if (!this._listeners[event]) return;
-				this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
-			},
-			publish: function (event, data) {
-				if (this._listeners[event]) {
-					this._listeners[event].forEach(callback => callback(data));
+		// Centralized Data Service (Optimized Singleton)
+		window.TVDataService = window.TVDataService || (function () {
+			const listeners = new Map();
+			return {
+				subscribe(event, callback) {
+					if (!listeners.has(event)) listeners.set(event, new Set());
+					listeners.get(event).add(callback);
+				},
+				unsubscribe(event, callback) {
+					if (listeners.has(event)) listeners.get(event).delete(callback);
+				},
+				publish(event, data) {
+					const callbacks = listeners.get(event);
+					if (callbacks) {
+						callbacks.forEach(cb => {
+							try { cb(data); } catch (e) { console.error(`[TVDataService] Error in ${event} subscriber:`, e); }
+						});
+					}
 				}
-			}
-		};
+			};
+		})();
 
 		// Default Enabled Watchlist Volumn Column 
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
@@ -37,6 +40,7 @@
 		window.TVChartConfig = window.TVChartConfig || {
 			symbol: "BINANCE:BTCUSDT.P",
 			timeframe: "1",
+			candleRange: 5,
 			watchList: [
 				"BINANCE:BTCUSDT.P",
 				"BYBIT:ETHUSDT.P",
@@ -51,29 +55,29 @@
 		// Style Configuration
 		window.TVChartStyle = {
 			customCSS: `#documentation-toolbar-button {
-				all: unset;
-				position: relative;
-				color: #FFF;
-				font-size: 14px;
-				font-weight: 400;
-				line-height: 18px;
-				letter-spacing: 0.15408px;
-				padding: 5px 12px;
-				border-radius: 80px;
+					all: unset;
+					position: relative;
+					color: #FFF;
+					font-size: 14px;
+					font-weight: 400;
+					line-height: 18px;
+					letter-spacing: 0.15408px;
+					padding: 5px 12px;
+					border-radius: 80px;
 				background: #2962FF;
-				cursor: pointer;
-			}
+					cursor: pointer;
+				}
 			#documentation-toolbar-button:hover { background: #1E53E5; }
 			#documentation-toolbar-button:active { background: #1948CC; }
-			#theme-toggle { display: flex; flex-direction: row; align-items: center; gap: 12px; }
-			.switcher { display: inline-block; position: relative; width: 38px; height: 20px; vertical-align: middle; }
-			.switcher input { position: absolute; opacity: 0; width: 100%; height: 100%; z-index: 1; cursor: pointer; }
-			.switcher .thumb-wrapper { display: block; border-radius: 20px; position: relative; height: 100%; width: 100%; }
-			.switcher .track { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 20px; background-color: #a3a6af; }
+				#theme-toggle { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+				.switcher { display: inline-block; position: relative; width: 38px; height: 20px; vertical-align: middle; }
+				.switcher input { position: absolute; opacity: 0; width: 100%; height: 100%; z-index: 1; cursor: pointer; }
+				.switcher .thumb-wrapper { display: block; border-radius: 20px; position: relative; height: 100%; width: 100%; }
+				.switcher .track { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 20px; background-color: #a3a6af; }
 			#theme-switch:checked + .thumb-wrapper .track { background-color: #2962ff; }
-			.switcher .thumb { display: block; width: 14px; height: 14px; border-radius: 14px; background: #fff; transition: transform 250ms ease-out; transform: translate(3px, 3px); }
-			.switcher input:checked + .thumb-wrapper .thumb { transform: translate(21px, 3px); }
-			#tv_chart_container { height: 100vh; width: 100%; }`
+				.switcher .thumb { display: block; width: 14px; height: 14px; border-radius: 14px; background: #fff; transition: transform 250ms ease-out; transform: translate(3px, 3px); }
+				.switcher input:checked + .thumb-wrapper .thumb { transform: translate(21px, 3px); }
+				#tv_chart_container { height: 100vh; width: 100%; }`
 		};
 
 		/**
@@ -164,46 +168,58 @@
 			}
 		}
 
-		let indicatorCache = null;
+		let lastIndicatorFetch = { timestamp: 0, cache: null };
 
-		async function syncIndicatorValues(bar) {
+		async function syncIndicatorValues(bars) {
 			const chart = window.tvWidget?.chart();
+			if (!chart || !bars?.length) return bars;
 
-			if (!chart || !bar) return {};
+			const now = Date.now();
+			const THROTTLE_MS = 250; // Max 4 exports per second
 
 			try {
-				// Fetch dataset once per tick cycle
-				if (!indicatorCache) {
-					const studies = chart.getAllStudies();
-					const studiesMap = new Map(studies.map(s => [s.id, s.name]));
-
+				// Optimization: Throttle exportData calls
+				if (now - lastIndicatorFetch.timestamp > THROTTLE_MS || !lastIndicatorFetch.cache) {
 					const result = await chart.exportData({
 						includeTime: true,
 						includeSeries: false,
 						includeStudies: true,
+						// Optimization: Only export the range we actually need
+						from: (bars[0].time / 1000) - 60,
+						to: (bars[bars.length - 1].time / 1000) + 60
 					});
 
+					const studies = chart.getAllStudies();
+					const studiesMap = new Map(studies.map(s => [s.id, s.name]));
 					const rowMap = new Map();
+
 					result.data.forEach(row => rowMap.set(row[0], row));
-					indicatorCache = { schema: result.schema, rowMap, studiesMap };
+
+					lastIndicatorFetch = {
+						timestamp: now,
+						cache: { schema: result.schema, rowMap, studiesMap }
+					};
 				}
 
-				const indicators = {};
-				const row = indicatorCache.rowMap.get(bar.time / 1000);
-				if (row) {
-					indicatorCache.schema.forEach((col, i) => {
-						if (col.sourceType === 'study') {
-							const realName = indicatorCache.studiesMap.get(col.sourceId);
-							if (realName) {
-								indicators[realName] = row[i];
+				const { schema, rowMap, studiesMap } = lastIndicatorFetch.cache;
+
+				bars.forEach(bar => {
+					const row = rowMap.get(bar.time / 1000);
+					bar.indicators = {};
+					if (row) {
+						schema.forEach((col, i) => {
+							if (col.sourceType === 'study') {
+								const realName = studiesMap.get(col.sourceId);
+								if (realName) bar.indicators[realName] = row[i];
 							}
-						}
-					});
-				}
-				return indicators;
+						});
+					}
+				});
+
+				return bars;
 			} catch (e) {
-				console.error("Per-bar indicator error:", e);
-				return {};
+				console.error("[Indicators] Sync error:", e);
+				return bars;
 			}
 		}
 
@@ -211,11 +227,14 @@
 		 * --- CUSTOM DATAFEED CLASS ---
 		 */
 
+		const getCandleRange = function () {
+			return window.TVChartConfig.candleRange;
+		}
+
 		class CustomDatafeed extends TradingView.TradingViewDatafeed {
 			constructor() {
 				super();
 				this.historicalBars = [];
-				this.historicalNumber = 5;
 				this.currentResolution = null;
 				this.onSymbolChange = null;
 			}
@@ -242,43 +261,36 @@
 			}
 
 			subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
-				const onCallback = (bar) => {
+				const onCallback = async (bar) => {
 					if (this.currentResolution !== resolution) return;
 
-					// Sliding window update
+					// Efficient sliding window update
 					if (this.historicalBars.length > 0) {
 						const last = this.historicalBars[this.historicalBars.length - 1];
-						// Nayi candle shuru hui, array mein push karein
-						if (bar.time > last.time) this.historicalBars.push(bar);
-						// Purani candle update ho rahi hai, last index replace karein
-						else this.historicalBars[this.historicalBars.length - 1] = bar;
-						// Memory limit (300-500 bars are enough)
-						if (this.historicalBars.length > 500) this.historicalBars.shift();
+						if (bar.time > last.time) {
+							this.historicalBars.push({ ...bar });
+							if (this.historicalBars.length > 500) this.historicalBars.shift();
+						} else {
+							this.historicalBars[this.historicalBars.length - 1] = { ...bar };
+						}
 					}
 
-					// Prepare unified payload
-					const unifiedData = {
+					const range = getCandleRange();
+
+					// Prepare data for publishing
+					const historySubset = this.historicalBars.slice(-range).map(b => ({ ...b }));
+
+					// Apply volume formatting
+					historySubset.forEach(b => b.volume = formatVolume(b.volume));
+
+					// Enrich with indicators (optimized batch call)
+					await syncIndicatorValues(historySubset);
+
+					window.TVDataService.publish('candle_updates', {
 						symbol: symbolInfo.full_name,
-						resolution: resolution,
-						data: this.historicalBars.slice(-this.historicalNumber).map(b => ({ ...b }))
-					};
-
-					if (unifiedData.data.length > 0) unifiedData.data[unifiedData.data.length - 1] = { ...bar };
-
-					// format entire bars volumn
-					unifiedData.data.forEach(b => b.volume = formatVolume(b.volume));
-
-					// Reset cache for this specific tick update
-					indicatorCache = null;
-
-					const promises = unifiedData.data.map(bar => {
-						return syncIndicatorValues(bar).then(data => {
-							bar['indicators'] = data;
-						});
+						resolution,
+						data: historySubset
 					});
-
-					// Wait for all iterations and then publish
-					Promise.all(promises).then(() => window.TVDataService.publish('candle_updates', unifiedData));
 
 					onTick(bar);
 				};
