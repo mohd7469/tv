@@ -428,24 +428,85 @@
 					await syncIndicators(chart, window.TVChartConfig.indicators);
 				}
 
-				datafeed.subscribeQuotes(
-					window.TVChartConfig.watchList,
-					[window.TVChartConfig.symbol], // fastSymbols
-					(data) => {
-						data?.forEach(quote => {
-							if (quote.s === 'ok' && quote.v.trade_loaded) {
-								window.TVDataService.publish('watchlist_updates', {
-									symbol: quote.v.original_name,
-									lastPrice: parseFloat(quote.v.lp),
-									changeUsd: parseFloat(quote.v.ch),
-									changePercent: parseFloat(quote.v.chp),
-									volume: formatVolume(quote.v.volume)
-								});
-							}
+				// 1. Current symbols ko track karne ke liye variable
+				let currentSymbols = [];
+				const watchlistListenerId = "global_watchlist_id";
+				const watchlistApi = await widget.watchList();
+
+
+				const syncWatchlist = async () => {
+					try {
+						const rawLists = watchlistApi.getAllLists();
+						if (!rawLists) return;
+
+						// All symbols extract karna
+						const listIds = Object.keys(rawLists);
+						const allSymbols = listIds.flatMap(id => {
+							const listData = watchlistApi.getList(id);
+							return listData ? listData : [];
 						});
-					},
-					"global_watchlist_id"
-				);
+
+						// Unique aur valid symbols filter karna
+						const watchListSymbols = [...new Set(allSymbols.filter(item => !item.startsWith('###')))];
+
+						// Check agar list waqayi change hui hai
+						if (JSON.stringify(watchListSymbols) !== JSON.stringify(currentSymbols)) {
+
+							// --- UNSUBSCRIBE LOGIC ---
+							// Nayi subscription se pehle purani ID ko unsubscribe karein
+							if (typeof datafeed.unsubscribeQuotes === 'function') {
+								datafeed.unsubscribeQuotes(watchlistListenerId);
+								console.log("Unsubscribed previous watchlist symbols");
+							}
+
+							// Reference update karein
+							currentSymbols = watchListSymbols;
+
+							if (currentSymbols.length === 0) {
+								console.log("Watchlist is empty, skipping subscription.");
+								return;
+							}
+
+							// --- SUBSCRIBE LOGIC ---
+							console.log("Subscribing to new symbols:", currentSymbols);
+							datafeed.subscribeQuotes(
+								currentSymbols,
+								[window.TVChartConfig.symbol],
+								(data) => {
+									data?.forEach(quote => {
+										if (quote.s === 'ok' && quote.v.trade_loaded) {
+											window.TVDataService.publish('watchlist_updates', {
+												symbol: quote.v.original_name,
+												lastPrice: parseFloat(quote.v.lp),
+												changeUsd: parseFloat(quote.v.ch),
+												changePercent: parseFloat(quote.v.chp),
+												volume: formatVolume(quote.v.volume)
+											});
+										}
+									});
+								},
+								watchlistListenerId // Same ID use karein cleanup ke liye
+							);
+						}
+					} catch (error) {
+						console.error("Error syncing watchlist:", error);
+					}
+				};
+
+				// 2. Initial execution
+				syncWatchlist();
+
+				// 3. Dynamic Events Listeners
+				const events = ['onListAdded', 'onListChanged', 'onListRemoved', 'onListRenamed'];
+				events.forEach(eventName => {
+					if (typeof watchlistApi[eventName] === 'function') {
+						watchlistApi[eventName]().subscribe(null, () => {
+							// console.log(`Event Triggered: ${eventName}`);
+							syncWatchlist();
+						});
+					}
+				});
+
 			});
 
 			window.frames[0]?.focus();
