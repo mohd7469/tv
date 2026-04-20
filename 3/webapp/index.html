@@ -442,16 +442,10 @@
 			widget.onChartReady(async () => {
 				const chart = widget.chart();
 
-				// Initial Indicator Sync
-				if (window.TVChartConfig.indicators) {
-					await syncIndicators(chart, window.TVChartConfig.indicators);
-				}
-
 				// 1. Current symbols ko track karne ke liye variable
 				let currentSymbols = [];
 				const watchlistListenerId = "global_watchlist_id";
 				const watchlistApi = await widget.watchList();
-
 
 				const syncWatchlist = async () => {
 					try {
@@ -490,7 +484,7 @@
 							console.log("Subscribing to new symbols:", currentSymbols);
 							datafeed.subscribeQuotes(
 								currentSymbols,
-								[window.TVChartConfig.symbol],
+								[window.TVChartConfig.symbol], // fastSymbols
 								(data) => {
 									data?.forEach(quote => {
 										if (quote.s === 'ok' && quote.v.trade_loaded) {
@@ -512,10 +506,7 @@
 					}
 				};
 
-				// 2. Initial execution
-				syncWatchlist();
-
-				// 3. Dynamic Events Listeners
+				// Dynamic Events Listeners
 				const events = ['onListAdded', 'onListChanged', 'onListRemoved', 'onListRenamed'];
 				events.forEach(eventName => {
 					if (typeof watchlistApi[eventName] === 'function') {
@@ -526,6 +517,13 @@
 					}
 				});
 
+				// Initial Watchlist Sync
+				syncWatchlist();
+
+				// Initial Indicator Sync
+				if (window.TVChartConfig.indicators) {
+					await syncIndicators(chart, window.TVChartConfig.indicators);
+				}
 			});
 
 			window.frames[0]?.focus();
