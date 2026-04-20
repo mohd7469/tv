@@ -309,7 +309,7 @@
 					if (window.TradingView && window.TradingView.TradingViewDatafeed) {
 						return resolve();
 					}
-					// Har 100ms baad dobara check karega
+					// non stop check karega jab tak mil na jaye
 					const interval = setInterval(() => {
 						if (window.TradingView && window.TradingView.TradingViewDatafeed) {
 							clearInterval(interval);
