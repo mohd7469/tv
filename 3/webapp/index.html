@@ -231,73 +231,6 @@
 			return window.TVChartConfig.candleRange;
 		}
 
-		class CustomDatafeed extends TradingView.TradingViewDatafeed {
-			constructor() {
-				super();
-				this.historicalBars = [];
-				this.currentResolution = null;
-				this.onSymbolChange = null;
-			}
-
-			resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
-				if (this.onSymbolChange) this.onSymbolChange(symbolName);
-				// Clear historical buffer on symbol change to avoid data leaks
-				this.historicalBars = [];
-				super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
-			}
-
-			getBars(symbolInfo, resolution, periodParams, onResult, onError) {
-				// Clear buffer on resolution change or initial data request for safety
-				if (this.currentResolution !== resolution || periodParams.firstDataRequest) {
-					this.historicalBars = [];
-					this.currentResolution = resolution;
-				}
-				super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
-					if (bars && bars.length > 0) {
-						if (periodParams.firstDataRequest) this.historicalBars = [...bars];
-						onResult(bars, meta);
-					}
-				}, onError);
-			}
-
-			subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
-				const onCallback = async (bar) => {
-					if (this.currentResolution !== resolution) return;
-
-					// Efficient sliding window update
-					if (this.historicalBars.length > 0) {
-						const last = this.historicalBars[this.historicalBars.length - 1];
-						if (bar.time > last.time) {
-							this.historicalBars.push({ ...bar });
-							if (this.historicalBars.length > 500) this.historicalBars.shift();
-						} else {
-							this.historicalBars[this.historicalBars.length - 1] = { ...bar };
-						}
-					}
-
-					const range = getCandleRange();
-
-					// Prepare data for publishing
-					const historySubset = this.historicalBars.slice(-range).map(b => ({ ...b }));
-
-					// Apply volume formatting
-					historySubset.forEach(b => b.volume = formatVolume(b.volume));
-
-					// Enrich with indicators (optimized batch call)
-					await syncIndicatorValues(historySubset);
-
-					window.TVDataService.publish('candle_updates', {
-						symbol: symbolInfo.full_name,
-						resolution,
-						data: historySubset
-					});
-
-					onTick(bar);
-				};
-				super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
-			}
-		}
-
 		/**
 		 * --- MAIN APP INITIALIZATION ---
 		 */
@@ -321,6 +254,73 @@
 
 			// 2. Wait karein jab tak instance mil na jaye
 			await waitForTradingView();
+
+			class CustomDatafeed extends TradingView.TradingViewDatafeed {
+				constructor() {
+					super();
+					this.historicalBars = [];
+					this.currentResolution = null;
+					this.onSymbolChange = null;
+				}
+
+				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
+					if (this.onSymbolChange) this.onSymbolChange(symbolName);
+					// Clear historical buffer on symbol change to avoid data leaks
+					this.historicalBars = [];
+					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
+				}
+
+				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
+					// Clear buffer on resolution change or initial data request for safety
+					if (this.currentResolution !== resolution || periodParams.firstDataRequest) {
+						this.historicalBars = [];
+						this.currentResolution = resolution;
+					}
+					super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
+						if (bars && bars.length > 0) {
+							if (periodParams.firstDataRequest) this.historicalBars = [...bars];
+							onResult(bars, meta);
+						}
+					}, onError);
+				}
+
+				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
+					const onCallback = async (bar) => {
+						if (this.currentResolution !== resolution) return;
+
+						// Efficient sliding window update
+						if (this.historicalBars.length > 0) {
+							const last = this.historicalBars[this.historicalBars.length - 1];
+							if (bar.time > last.time) {
+								this.historicalBars.push({ ...bar });
+								if (this.historicalBars.length > 500) this.historicalBars.shift();
+							} else {
+								this.historicalBars[this.historicalBars.length - 1] = { ...bar };
+							}
+						}
+
+						const range = getCandleRange();
+
+						// Prepare data for publishing
+						const historySubset = this.historicalBars.slice(-range).map(b => ({ ...b }));
+
+						// Apply volume formatting
+						historySubset.forEach(b => b.volume = formatVolume(b.volume));
+
+						// Enrich with indicators (optimized batch call)
+						await syncIndicatorValues(historySubset);
+
+						window.TVDataService.publish('candle_updates', {
+							symbol: symbolInfo.full_name,
+							resolution,
+							data: historySubset
+						});
+
+						onTick(bar);
+					};
+					super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
+				}
+			}
 
 			const datafeed = new CustomDatafeed();
 
