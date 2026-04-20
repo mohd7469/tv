@@ -100,6 +100,17 @@
 			return v.toFixed(0);
 		}
 
+		function getCurrentTimeframe() {
+			try {
+				if (window.tvWidget) {
+					return window.tvWidget.activeChart().resolution();
+				}
+			} catch (e) {
+				console.error("Error getting timeframe:", e);
+			}
+			return window.TVChartConfig ? window.TVChartConfig.timeframe : '1';
+		}
+
 		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
 
 		async function fetchNews() {
@@ -312,7 +323,7 @@
 
 						window.TVDataService.publish('candle_updates', {
 							symbol: symbolInfo.full_name,
-							resolution,
+							currentTimeframe: getCurrentTimeframe(),
 							data: historySubset
 						});
 
@@ -489,11 +500,15 @@
 									data?.forEach(quote => {
 										if (quote.s === 'ok' && quote.v.trade_loaded) {
 											window.TVDataService.publish('watchlist_updates', {
-												symbol: quote.v.original_name,
-												lastPrice: parseFloat(quote.v.lp),
-												changeUsd: parseFloat(quote.v.ch),
-												changePercent: parseFloat(quote.v.chp),
-												volume: formatVolume(quote.v.volume)
+												symbols: currentSymbols,
+												currentTimeframe: getCurrentTimeframe(),
+												data: {
+													symbol: quote.v.original_name,
+													lastPrice: parseFloat(quote.v.lp),
+													changeUsd: parseFloat(quote.v.ch),
+													changePercent: parseFloat(quote.v.chp),
+													volume: formatVolume(quote.v.volume)
+												}
 											});
 										}
 									});
