@@ -11,27 +11,23 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
-		// Centralized Data Service (Optimized Singleton)
-		window.TVDataService = window.TVDataService || (function () {
-			const listeners = new Map();
-			return {
-				subscribe(event, callback) {
-					if (!listeners.has(event)) listeners.set(event, new Set());
-					listeners.get(event).add(callback);
-				},
-				unsubscribe(event, callback) {
-					if (listeners.has(event)) listeners.get(event).delete(callback);
-				},
-				publish(event, data) {
-					const callbacks = listeners.get(event);
-					if (callbacks) {
-						callbacks.forEach(cb => {
-							try { cb(data); } catch (e) { console.error(`[TVDataService] Error in ${event} subscriber:`, e); }
-						});
-					}
-				}
-			};
-		})();
+		// Window variable for real-time data publication
+		const publishCandleUpdates = (payload) => {
+			window.candleUpdates = payload;
+			// Dispatch custom event for components that want to listen
+			if (typeof window !== 'undefined') {
+				window.dispatchEvent(new CustomEvent('candleUpdates', { detail: payload }));
+			}
+		}
+
+		// Window variable for real-time data publication
+		const publishWatchlistUpdates = (payload) => {
+			window.watchlistUpdates = payload;
+			// Dispatch custom event for components that want to listen
+			if (typeof window !== 'undefined') {
+				window.dispatchEvent(new CustomEvent('watchlistUpdates', { detail: payload }));
+			}
+		}
 
 		// Default Enabled Watchlist Volumn Column 
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
@@ -321,7 +317,7 @@
 						// Enrich with indicators (optimized batch call)
 						await syncIndicatorValues(historySubset);
 
-						window.TVDataService.publish('candle_updates', {
+						publishCandleUpdates({
 							symbol: symbolInfo.full_name,
 							currentTimeframe: getCurrentTimeframe(),
 							data: historySubset
@@ -499,7 +495,7 @@
 								(data) => {
 									data?.forEach(quote => {
 										if (quote.s === 'ok' && quote.v.trade_loaded) {
-											window.TVDataService.publish('watchlist_updates', {
+											publishWatchlistUpdates({
 												symbols: currentSymbols,
 												currentTimeframe: getCurrentTimeframe(),
 												data: {
