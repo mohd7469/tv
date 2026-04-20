@@ -303,6 +303,25 @@
 		 */
 
 		async function initOnReady() {
+			// 1. Helper function jo check karega TradingView available hai ya nahi
+			const waitForTradingView = () => {
+				return new Promise((resolve) => {
+					if (window.TradingView && window.TradingView.TradingViewDatafeed) {
+						return resolve();
+					}
+					// Har 100ms baad dobara check karega
+					const interval = setInterval(() => {
+						if (window.TradingView && window.TradingView.TradingViewDatafeed) {
+							clearInterval(interval);
+							resolve();
+						}
+					}, 500);
+				});
+			};
+
+			// 2. Wait karein jab tak instance mil na jaye
+			await waitForTradingView();
+
 			const datafeed = new CustomDatafeed();
 
 			// Setup CSS
