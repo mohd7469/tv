@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<title>TradingView Trading Platform demo</title>
+	<title>Tradingview</title>
 	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0" />
 
 	<script type="text/javascript" src="charting_library/charting_library.standalone.js"></script>
@@ -11,29 +11,12 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
-		// Window variable for real-time data publication
-		const publishCandleUpdates = (payload) => {
-			// Dispatch custom event for components that want to listen
-			if (typeof window !== 'undefined') {
-				// console.log('dispatching candleUpdates', payload);
-				window.dispatchEvent(new CustomEvent('candleUpdates', { detail: JSON.stringify(payload) }));
-			}
-		}
-
-		// Window variable for real-time data publication
-		const publishWatchlistUpdates = (payload) => {
-			// Dispatch custom event for components that want to listen
-			if (typeof window !== 'undefined') {
-				// console.log('dispatching watchlistUpdates', payload);
-				window.dispatchEvent(new CustomEvent('watchlistUpdates', { detail: JSON.stringify(payload) }));
-			}
-		}
 
 		// Default Enabled Watchlist Volumn Column 
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
 
-		// Centralized Chart Configuration
-		window.TVChartConfig = window.TVChartConfig || {
+		// Global Chart Settings 
+		const TVChartSettings = {
 			symbol: "BINANCE:BTCUSDT.P",
 			timeframe: "1",
 			candleRange: 5,
@@ -46,10 +29,10 @@
 				"Volume",
 				"Relative Strength Index"
 			]
-		};
+		}
 
 		// Style Configuration
-		window.TVChartStyle = {
+		const TVChartStyles = {
 			customCSS: `#documentation-toolbar-button {
 					all: unset;
 					position: relative;
@@ -76,9 +59,10 @@
 				#tv_chart_container { height: 100%; width: 100%; }`
 		};
 
-		/**
-		 * --- UTILITY FUNCTIONS ---
-		 */
+		// Chart SVG
+		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
+
+		// UTILITY FUNCTIONS
 
 		function getParameterByName(name) {
 			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -95,19 +79,6 @@
 			if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
 			return v.toFixed(0);
 		}
-
-		function getCurrentTimeframe() {
-			try {
-				if (window.tvWidget) {
-					return window.tvWidget.activeChart().resolution();
-				}
-			} catch (e) {
-				console.error("Error getting timeframe:", e);
-			}
-			return window.TVChartConfig ? window.TVChartConfig.timeframe : '1';
-		}
-
-		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
 
 		async function fetchNews() {
 			try {
@@ -139,20 +110,19 @@
 			}
 		}
 
-		/**
-		 * --- INDICATOR UTILITIES ---
-		 */
+		// INDICATOR UTILITIES
 
 		async function syncIndicators(chart, desiredIndicators) {
-			try {
-				const currentActive = chart.getAllStudies();
-				const activeNames = currentActive.map(s => s.name);
+			return new Promise((resolve) => {
+				const currentActiveIndicators = chart.getAllStudies();
+				const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
 
 				// 1. Remove indicators that are NO LONGER in the updated list
-				for (const study of currentActive) {
+				for (const study of currentActiveIndicators) {
 					if (!desiredIndicators.includes(study.name)) {
 						try {
-							await chart.removeEntity(study.id);
+							chart.removeEntity(study.id);
+							console.log(`Indicator removed: ${study.name}`);
 						} catch (e) {
 							console.error(`Failed to remove indicator ${study.name}:`, e);
 						}
@@ -161,131 +131,113 @@
 
 				// 2. Add indicators that are NEW
 				for (const name of desiredIndicators) {
-					if (!activeNames.includes(name)) {
+					if (!activeIndicatorNames.includes(name)) {
 						try {
-							await chart.createStudy(name, false, false);
+							chart.createStudy(name, false, false);
 							console.log(`Indicator added: ${name}`);
 						} catch (e) {
 							console.error(`Failed to add indicator ${name}:`, e);
 						}
 					}
 				}
-			} catch (error) {
-				console.error("Critical error in syncIndicators:", error);
-			}
+
+				resolve();
+			}).catch(err => {
+				console.error("Error in syncIndicators:", err);
+				resolve([]);
+			});
 		}
 
-		let lastIndicatorFetch = { timestamp: 0, cache: null };
+		async function getChartData(chart, upto) {
+			return new Promise((resolve) => {
+				const currentActiveIndicators = chart.getAllStudies();
+				// const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
 
-		async function syncIndicatorValues(bars) {
-			const chart = window.tvWidget?.chart();
-			if (!chart || !bars?.length) return bars;
+				chart.exportData({
+					includeTime: true,
+					includeSeries: true,
+					includeStudies: true
+				}).then(result => {
+					// console.log(result);
 
-			const now = Date.now();
-			const THROTTLE_MS = 250; // Max 4 exports per second
+					const { data, schema } = result;
 
-			try {
-				// Optimization: Throttle exportData calls
-				if (now - lastIndicatorFetch.timestamp > THROTTLE_MS || !lastIndicatorFetch.cache) {
-					const result = await chart.exportData({
-						includeTime: true,
-						includeSeries: false,
-						includeStudies: true,
-						// Optimization: Only export the range we actually need
-						from: (bars[0].time / 1000) - 60,
-						to: (bars[bars.length - 1].time / 1000) + 60
-					});
+					const finalResults = [];
 
-					const studies = chart.getAllStudies();
-					const studiesMap = new Map(studies.map(s => [s.id, s.name]));
-					const rowMap = new Map();
+					// start index from where we need to fetch data
+					const startIdx = Math.max(0, data.length - upto);
 
-					result.data.forEach(row => rowMap.set(row[0], row));
+					data.slice(startIdx).map((float64ArrayRow, dataIndex) => {
+						const formattedData = {};
+						// create empty indicators object for setting applied indicator values for each candle 
+						formattedData['indicators'] = {};
 
-					lastIndicatorFetch = {
-						timestamp: now,
-						cache: { schema: result.schema, rowMap, studiesMap }
-					};
-				}
+						schema.forEach((schemaObj, schemaIndex) => {
+							const { type, sourceType } = schemaObj;
 
-				const { schema, rowMap, studiesMap } = lastIndicatorFetch.cache;
-
-				bars.forEach(bar => {
-					const row = rowMap.get(bar.time / 1000);
-					bar.indicators = {};
-					if (row) {
-						schema.forEach((col, i) => {
-							if (col.sourceType === 'study') {
-								const realName = studiesMap.get(col.sourceId);
-								if (realName) bar.indicators[realName] = row[i];
+							if (type === 'time') {
+								formattedData['time'] = float64ArrayRow[schemaIndex];
+								return;
+							} else if (type === 'value') {
+								switch (sourceType) {
+									case 'series':
+										const { plotTitle } = schemaObj;
+										const key = plotTitle.toLowerCase();
+										if (['open', 'high', 'low', 'close'].includes(key)) {
+											formattedData[key] = float64ArrayRow[schemaIndex];
+										}
+										break;
+									case 'study':
+										const { sourceId, sourceTitle } = schemaObj; // this is indicator id
+										const indicator = currentActiveIndicators.find(obj => obj.id === sourceId);
+										formattedData['indicators'][sourceTitle] = float64ArrayRow[schemaIndex];
+										break;
+								}
 							}
-						});
-					}
-				});
+						})
 
-				return bars;
-			} catch (e) {
-				console.error("[Indicators] Sync error:", e);
-				return bars;
-			}
+						finalResults.push(formattedData);
+					})
+
+					resolve(finalResults.reverse());
+				})
+
+			}).catch(err => {
+				console.error("Error in getChartData:", err);
+				resolve([]);
+			});
 		}
 
-		/**
-		 * --- CUSTOM DATAFEED CLASS ---
-		 */
-
-		const getCandleRange = function () {
-			return window.TVChartConfig.candleRange;
-		}
-
-		/**
-		 * --- MAIN APP INITIALIZATION ---
-		 */
+		// MAIN APP INITIALIZATION
 
 		async function initOnReady() {
-			// 1. Helper function jo check karega TradingView available hai ya nahi
 			const waitForTradingView = () => {
 				return new Promise((resolve) => {
-					if (window.TradingView && window.TradingView.TradingViewDatafeed) {
-						return resolve();
-					}
-					// non stop check karega jab tak mil na jaye
-					const interval = setInterval(() => {
-						if (window.TradingView && window.TradingView.TradingViewDatafeed) {
-							clearInterval(interval);
-							resolve();
-						}
-					}, 500);
+					const check = () =>
+						window.TradingView?.TradingViewDatafeed
+							? resolve()
+							: setTimeout(check, 100);
+
+					check();
 				});
 			};
 
-			// 2. Wait karein jab tak instance mil na jaye
 			await waitForTradingView();
 
 			class CustomDatafeed extends TradingView.TradingViewDatafeed {
 				constructor() {
 					super();
-					this.historicalBars = [];
-					this.currentResolution = null;
 					this.onSymbolChange = null;
 				}
 
 				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
 					if (this.onSymbolChange) this.onSymbolChange(symbolName);
-					// Clear historical buffer on symbol change to avoid data leaks
-					this.historicalBars = [];
 					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
 				}
 
 				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
-					// Clear buffer on resolution change or initial data request for safety
-					if (this.currentResolution !== resolution || periodParams.firstDataRequest) {
-						this.historicalBars = [];
-						this.currentResolution = resolution;
-					}
 					super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
 						if (bars && bars.length > 0) {
-							if (periodParams.firstDataRequest) this.historicalBars = [...bars];
 							onResult(bars, meta);
 						}
 					}, onError);
@@ -293,40 +245,6 @@
 
 				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
 					const onCallback = async (bar) => {
-						if (this.currentResolution !== resolution) return;
-
-						// Efficient sliding window update
-						if (this.historicalBars.length > 0) {
-							const last = this.historicalBars[this.historicalBars.length - 1];
-							if (bar.time > last.time) {
-								this.historicalBars.push({ ...bar });
-								if (this.historicalBars.length > 500) this.historicalBars.shift();
-							} else {
-								this.historicalBars[this.historicalBars.length - 1] = { ...bar };
-							}
-						}
-
-						const range = getCandleRange();
-
-						// Prepare data for publishing
-						const historySubset = this.historicalBars.slice(-range).map(b => ({ ...b })).reverse();
-
-						// Apply volume formatting
-						historySubset.forEach(b => b.volume = formatVolume(b.volume));
-
-						// Enrich with indicators (optimized batch call)
-						await syncIndicatorValues(historySubset);
-
-						const timeframe = getCurrentTimeframe();
-
-						const payload = {
-							symbol: symbolInfo.full_name,
-							currentTimeframe: timeframe,
-							data: historySubset
-						}
-
-						publishCandleUpdates(payload);
-
 						onTick(bar);
 					};
 					super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
@@ -336,7 +254,7 @@
 			const datafeed = new CustomDatafeed();
 
 			// Setup CSS
-			const cssBlob = new Blob([window.TVChartStyle.customCSS], { type: "text/css" });
+			const cssBlob = new Blob([TVChartStyles.customCSS], { type: "text/css" });
 			const cssBlobUrl = URL.createObjectURL(cssBlob);
 
 			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -346,8 +264,8 @@
 			const widget = window.tvWidget = new TradingView.widget({
 				fullscreen: true,
 				autosize: true,
-				symbol: window.TVChartConfig.symbol,
-				interval: window.TVChartConfig.timeframe,
+				symbol: TVChartSettings.symbol,
+				interval: TVChartSettings.timeframe,
 				container: 'tv_chart_container',
 				datafeed: datafeed,
 				library_path: 'charting_library/',
@@ -389,7 +307,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: window.TVChartConfig.watchList,
+						default_symbols: TVChartSettings.watchList,
 					},
 				},
 				news_provider: async (symbol, callback) => {
@@ -451,9 +369,32 @@
 
 			// Watchlist Data Stream
 			widget.onChartReady(async () => {
-				const chart = widget.chart();
+				const chart = widget.activeChart();
 
-				// 1. Current symbols ko track karne ke liye variable
+				// Initial Indicator Sync
+				if (TVChartSettings.indicators) {
+					await syncIndicators(chart, TVChartSettings.indicators);
+				}
+
+				widget.subscribe('onTick', async () => {
+					try {
+						// extract candle data (upto X candles)
+						const res = await getChartData(chart, 4);
+
+						const payload = {
+							symbol: chart.symbol(),
+							currentTimeframe: chart.resolution(),
+							data: res
+						}
+
+						// console.log('dispatching candleUpdates', payload);
+						window.dispatchEvent(new CustomEvent('candleUpdates', { detail: JSON.stringify(payload) }));
+					} catch (error) {
+						console.error("Tick processing error:", error);
+					}
+				});
+
+				// Current symbols ko track karne ke liye variable
 				let currentSymbols = [];
 				const watchlistListenerId = "global_watchlist_id";
 				const watchlistApi = await widget.watchList();
@@ -495,23 +436,26 @@
 							console.log("Subscribing to new symbols:", currentSymbols);
 							datafeed.subscribeQuotes(
 								currentSymbols,
-								[window.TVChartConfig.symbol], // fastSymbols
+								[TVChartSettings.symbol], // fastSymbols
 								(data) => {
 									data?.forEach(quote => {
 										if (quote.s === 'ok' && quote.v.trade_loaded) {
-											const payload = {
-												symbols: currentSymbols,
-												currentTimeframe: getCurrentTimeframe(),
-												data: {
-													symbol: quote.v.original_name,
-													lastPrice: parseFloat(quote.v.lp),
-													changeUsd: parseFloat(quote.v.ch),
-													changePercent: parseFloat(quote.v.chp),
-													volume: formatVolume(quote.v.volume)
-												}
-											};
-
-											publishWatchlistUpdates(payload);
+											// Window variable for real-time data publication
+											if (typeof window !== 'undefined') {
+												const payload = {
+													symbols: currentSymbols,
+													currentTimeframe: chart.resolution(),
+													data: {
+														symbol: quote.v.original_name,
+														lastPrice: parseFloat(quote.v.lp),
+														changeUsd: parseFloat(quote.v.ch),
+														changePercent: parseFloat(quote.v.chp),
+														volume: formatVolume(quote.v.volume)
+													}
+												};
+												// console.log('dispatching watchlistUpdates', payload);
+												window.dispatchEvent(new CustomEvent('watchlistUpdates', { detail: JSON.stringify(payload) }));
+											}
 										}
 									});
 								},
@@ -522,6 +466,9 @@
 						console.error("Error syncing watchlist:", error);
 					}
 				};
+
+				// Initial Watchlist Sync
+				syncWatchlist();
 
 				// Dynamic Events Listeners
 				const events = ['onListAdded', 'onListChanged', 'onListRemoved', 'onListRenamed'];
@@ -534,13 +481,6 @@
 					}
 				});
 
-				// Initial Watchlist Sync
-				syncWatchlist();
-
-				// Initial Indicator Sync
-				if (window.TVChartConfig.indicators) {
-					await syncIndicators(chart, window.TVChartConfig.indicators);
-				}
 			});
 
 			window.frames[0]?.focus();
