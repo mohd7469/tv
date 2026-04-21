@@ -11,6 +11,7 @@
 	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="text/javascript">
+		// @ts-nocheck
 
 		// Default Enabled Watchlist Volumn Column 
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
@@ -210,7 +211,7 @@
 
 		// MAIN APP INITIALIZATION
 
-		async function initOnReady() {
+		export async function initOnReady() {
 			const waitForTradingView = () => {
 				return new Promise((resolve) => {
 					const check = () =>
@@ -262,7 +263,7 @@
 
 			// Initialize Widget
 			const widget = window.tvWidget = new TradingView.widget({
-				fullscreen: true,
+				fullscreen: false,
 				autosize: true,
 				symbol: TVChartSettings.symbol,
 				interval: TVChartSettings.timeframe,
