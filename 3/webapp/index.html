@@ -16,9 +16,24 @@
 		// Default Enabled Watchlist Volumn Column 
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
 
+		// Chart Display Types 
+		const chartDisplayTypes = {
+			'bars': 0,
+			'candles': 1,
+			'line': 2,
+			'area': 3,
+			'heikin_ashi': 8,
+			'hollow_candles': 9,
+			'baseline': 10,
+			'hi_lo': 12,
+			'column': 13,
+			'volume_candles': 19,
+		};
+
 		// Global Chart Settings 
 		const config = {
 			symbol: "BINANCE:BTCUSDT.P",
+			chartType: "candles",
 			timeframe: "1",
 			candleRange: 5,
 			watchList: [
@@ -294,7 +309,7 @@
 					'pre_post_market_price_line'
 				],
 				overrides: {
-					// 'mainSeriesProperties.style': 19, // volume candles
+					"mainSeriesProperties.style": chartDisplayTypes[config?.chartType] ?? 1,
 					"mainSeriesProperties.showCountdown": true,
 					// 'mainSeriesProperties.sessionId': 'extended',
 				},
