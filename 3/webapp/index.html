@@ -17,7 +17,7 @@
 		localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
 
 		// Global Chart Settings 
-		const TVChartSettings = {
+		const config = {
 			symbol: "BINANCE:BTCUSDT.P",
 			timeframe: "1",
 			candleRange: 5,
@@ -33,7 +33,7 @@
 		}
 
 		// Style Configuration
-		const TVChartStyles = {
+		const styles = {
 			customCSS: `#documentation-toolbar-button {
 					all: unset;
 					position: relative;
@@ -255,7 +255,7 @@
 			const datafeed = new CustomDatafeed();
 
 			// Setup CSS
-			const cssBlob = new Blob([TVChartStyles.customCSS], { type: "text/css" });
+			const cssBlob = new Blob([styles.customCSS], { type: "text/css" });
 			const cssBlobUrl = URL.createObjectURL(cssBlob);
 
 			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -265,8 +265,8 @@
 			const widget = window.tvWidget = new TradingView.widget({
 				fullscreen: false,
 				autosize: true,
-				symbol: TVChartSettings.symbol,
-				interval: TVChartSettings.timeframe,
+				symbol: config.symbol,
+				interval: config.timeframe,
 				container: 'tv_chart_container',
 				datafeed: datafeed,
 				library_path: 'charting_library/',
@@ -308,7 +308,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: TVChartSettings.watchList,
+						default_symbols: config.watchList,
 					},
 				},
 				news_provider: async (symbol, callback) => {
@@ -373,8 +373,8 @@
 				const chart = widget.activeChart();
 
 				// Initial Indicator Sync
-				if (TVChartSettings.indicators) {
-					await syncIndicators(chart, TVChartSettings.indicators);
+				if (config.indicators) {
+					await syncIndicators(chart, config.indicators);
 				}
 
 				widget.subscribe('onTick', async () => {
@@ -437,7 +437,7 @@
 							console.log("Subscribing to new symbols:", currentSymbols);
 							datafeed.subscribeQuotes(
 								currentSymbols,
-								[TVChartSettings.symbol], // fastSymbols
+								[config.symbol], // fastSymbols
 								(data) => {
 									data?.forEach(quote => {
 										if (quote.s === 'ok' && quote.v.trade_loaded) {
