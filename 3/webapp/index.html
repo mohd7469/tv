@@ -309,7 +309,7 @@
 					'pre_post_market_price_line'
 				],
 				overrides: {
-					"mainSeriesProperties.style": chartDisplayTypes[config?.chartType] ?? 1,
+					"mainSeriesProperties.style": chartDisplayTypes[config.chartType] ?? 1,
 					"mainSeriesProperties.showCountdown": true,
 					// 'mainSeriesProperties.sessionId': 'extended',
 				},
@@ -395,7 +395,7 @@
 				widget.subscribe('onTick', async () => {
 					try {
 						// extract candle data (upto X candles)
-						const res = await getChartData(chart, 4);
+						const res = await getChartData(chart, config.candleRange);
 
 						const payload = {
 							symbol: chart.symbol(),
