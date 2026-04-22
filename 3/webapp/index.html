@@ -130,12 +130,47 @@
 
 		async function syncIndicators(chart, desiredIndicators) {
 			return new Promise((resolve) => {
-				const currentActiveIndicators = chart.getAllStudies();
-				const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
+				// const currentActiveIndicators = chart.getAllStudies();
+				// const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
 
-				// 1. Remove indicators that are NO LONGER in the updated list
+				// // 1. Remove indicators that are NO LONGER in the updated list
+				// for (const study of currentActiveIndicators) {
+				//     if (!desiredIndicators.includes(study.name)) {
+				//         try {
+				//             chart.removeEntity(study.id);
+				//             console.log(`Indicator removed: ${study.name}`);
+				//         } catch (e) {
+				//             console.error(`Failed to remove indicator ${study.name}:`, e);
+				//         }
+				//     }
+				// }
+
+				// // 2. Add indicators that are NEW
+				// for (const name of desiredIndicators) {
+				//     if (!activeIndicatorNames.includes(name)) {
+				//         try {
+				//             chart.createStudy(name, false, false);
+				//             console.log(`Indicator added: ${name}`);
+				//         } catch (e) {
+				//             console.error(`Failed to add indicator ${name}:`, e);
+				//         }
+				//     }
+				// }
+
+				const currentActiveIndicators = chart.getAllStudies();
+
+				// e.g. our desired indicator "Volume" becomes "Volume - BTC" on chart.
+				// So we use a prefix-based match (case-insensitive) instead of exact match.
+				const isMatch = (activeName, desiredName) =>
+					activeName.toLowerCase().startsWith(desiredName.toLowerCase());
+				const isDesired = (activeName) =>
+					desiredIndicators.some(d => isMatch(activeName, d));
+				const isAlreadyActive = (desiredName) =>
+					currentActiveIndicators.some(s => isMatch(s.name, desiredName));
+
+				// 1. Remove indicators that are NO LONGER in the desired list
 				for (const study of currentActiveIndicators) {
-					if (!desiredIndicators.includes(study.name)) {
+					if (!isDesired(study.name)) {
 						try {
 							chart.removeEntity(study.id);
 							console.log(`Indicator removed: ${study.name}`);
@@ -145,9 +180,9 @@
 					}
 				}
 
-				// 2. Add indicators that are NEW
+				// 2. Add indicators that are NEW (not already on the chart)
 				for (const name of desiredIndicators) {
-					if (!activeIndicatorNames.includes(name)) {
+					if (!isAlreadyActive(name)) {
 						try {
 							chart.createStudy(name, false, false);
 							console.log(`Indicator added: ${name}`);
