@@ -438,7 +438,7 @@
 							data: res
 						}
 
-						// console.log('dispatching candleUpdates', payload);
+						console.log('dispatching candleUpdates', payload);
 						window.dispatchEvent(new CustomEvent('candleUpdates', { detail: JSON.stringify(payload) }));
 					} catch (error) {
 						console.error("Tick processing error:", error);
