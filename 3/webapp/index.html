@@ -5,10 +5,12 @@
 	<title>Tradingview</title>
 	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0" />
 
-	<script type="text/javascript" src="charting_library/charting_library.standalone.js"></script>
 	<script type="text/javascript"
-		src="https://s3.tradingview.com/external-embedding/embed-widget-tradingview-datafeed.js"></script>
-	<script type="text/javascript" src="charting_library/broker-sample/dist/bundle.js"></script>
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/charting_library.standalone.js"></script>
+	<script type="text/javascript"
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/external-embedding/embed-widget-tradingview-datafeed.js"></script>
+	<script type="text/javascript"
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/broker-sample/dist/bundle.js"></script>
 
 	<script type="module">
 		// @ts-nocheck
@@ -22,6 +24,7 @@
 			'candles': 1,
 			'line': 2,
 			'area': 3,
+			'renko': 4,
 			'heikin_ashi': 8,
 			'hollow_candles': 9,
 			'baseline': 10,
@@ -325,7 +328,7 @@
 				interval: config.timeframe,
 				container: 'tv_chart_container',
 				datafeed: datafeed,
-				library_path: 'charting_library/',
+				library_path: 'https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/',
 				locale: getParameterByName('lang') || 'en',
 				custom_css_url: cssBlobUrl,
 				theme: theme,
