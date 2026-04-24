@@ -97,6 +97,16 @@
 
 		// UTILITY FUNCTIONS
 
+		function getDynamicLayout(len) {
+			if (len <= 1) return 's'; // Single chart
+			if (len === 2) return '2h'; // 2 charts side-by-side
+			if (len === 3) return '3h'; // 3 charts side-by-side
+			if (len === 4) return '2x2'; // Grid layout (best for 4 charts)
+			if (len <= 6) return '3x2'; // 3 columns, 2 rows
+			if (len <= 8) return '4x2'; // 4 columns, 2 rows
+			return '2x2'; // Fallback
+		}
+
 		function getParameterByName(name) {
 			name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
 			const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -433,7 +443,9 @@
 			});
 
 			widget.onChartReady(async () => {
-				widget.setLayout(config.symbols.length + 'h');
+				// Dynamic layout set kiya
+				const layout = getDynamicLayout(config.symbols.length);
+				widget.setLayout(layout);
 
 				for (let i = 0; i < config.symbols.length; i++) {
 					try {
