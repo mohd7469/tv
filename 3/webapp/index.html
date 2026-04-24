@@ -437,42 +437,32 @@
 
 				for (let i = 0; i < config.symbols.length; i++) {
 					try {
-						await new Promise(resolve => setTimeout(resolve, 1000));
 						const chart = widget.chart(i);
 
 						if (chart) {
-							const { symbol, interval, chartType } = config.symbols[i];
+							const { symbol, interval, chartType, indicators } = config.symbols[i];
+
 							chart.setSymbol(symbol, () => {
 								chart.setResolution(interval);
+								chart.setChartType(chartDisplayTypes[chartType]);
+
+								if (indicators) {
+									indicators.forEach(ind => {
+										const inputs = ind.inputs || [];
+										chart.createStudy(
+											ind.name,
+											false,    // forceOverlay
+											false,    // lock
+											inputs
+										);
+									});
+								}
 							});
-							chart.setChartType(chartDisplayTypes[chartType]);
+
+							await new Promise(resolve => setTimeout(resolve, 1000));
 						}
 					} catch (err) {
 						console.error(`Error setting layout ${i}:`, err);
-					}
-				}
-
-				for (let i = 0; i < config.symbols.length; i++) {
-					try {
-						await new Promise(resolve => setTimeout(resolve, 1000));
-						const chart = widget.chart(i);
-
-						if (chart) {
-							const { indicators } = config.symbols[i];
-							if (indicators) {
-								indicators.forEach(ind => {
-									const inputs = ind.inputs || [];
-									chart.createStudy(
-										ind.name,
-										false,    // forceOverlay
-										false,    // lock
-										inputs
-									);
-								});
-							}
-						}
-					} catch (err) {
-						console.error(`Error setting indicators ${i}:`, err);
 					}
 				}
 			});
