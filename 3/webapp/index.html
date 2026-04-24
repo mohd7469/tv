@@ -35,10 +35,33 @@
 
 		// Global Chart Settings 
 		const config = {
-			symbol: "BINANCE:BTCUSDT.P",
-			chartType: "candles",
-			timeframe: "1",
 			candleRange: 5,
+			symbols: [
+				{
+					symbol: 'BINANCE:BTCUSDT.P',
+					chartType: 'candles',
+					interval: '1',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 7 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:ETHUSDT.P',
+					chartType: 'candles',
+					interval: '5',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 14 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:SOLUSDT.P',
+					chartType: 'candles',
+					interval: '15',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+			],
 			watchList: [
 				"BINANCE:BTCUSDT.P",
 				"BINANCE:ETHUSDT.P",
@@ -50,10 +73,6 @@
 				"BINANCE:AVAXUSDT.P",
 				"BINANCE:DOTUSDT.P",
 			],
-			indicators: [
-				"Volume",
-				"Relative Strength Index"
-			]
 		}
 
 		// Style Configuration
@@ -135,139 +154,6 @@
 			}
 		}
 
-		// INDICATOR UTILITIES
-
-		async function syncIndicators(chart, desiredIndicators) {
-			return new Promise((resolve) => {
-				// const currentActiveIndicators = chart.getAllStudies();
-				// const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
-
-				// // 1. Remove indicators that are NO LONGER in the updated list
-				// for (const study of currentActiveIndicators) {
-				//     if (!desiredIndicators.includes(study.name)) {
-				//         try {
-				//             chart.removeEntity(study.id);
-				//             console.log(`Indicator removed: ${study.name}`);
-				//         } catch (e) {
-				//             console.error(`Failed to remove indicator ${study.name}:`, e);
-				//         }
-				//     }
-				// }
-
-				// // 2. Add indicators that are NEW
-				// for (const name of desiredIndicators) {
-				//     if (!activeIndicatorNames.includes(name)) {
-				//         try {
-				//             chart.createStudy(name, false, false);
-				//             console.log(`Indicator added: ${name}`);
-				//         } catch (e) {
-				//             console.error(`Failed to add indicator ${name}:`, e);
-				//         }
-				//     }
-				// }
-
-				const currentActiveIndicators = chart.getAllStudies();
-
-				// e.g. our desired indicator "Volume" becomes "Volume - BTC" on chart.
-				// So we use a prefix-based match (case-insensitive) instead of exact match.
-				const isMatch = (activeName, desiredName) =>
-					activeName.toLowerCase().startsWith(desiredName.toLowerCase());
-				const isDesired = (activeName) =>
-					desiredIndicators.some(d => isMatch(activeName, d));
-				const isAlreadyActive = (desiredName) =>
-					currentActiveIndicators.some(s => isMatch(s.name, desiredName));
-
-				// 1. Remove indicators that are NO LONGER in the desired list
-				for (const study of currentActiveIndicators) {
-					if (!isDesired(study.name)) {
-						try {
-							chart.removeEntity(study.id);
-							console.log(`Indicator removed: ${study.name}`);
-						} catch (e) {
-							console.error(`Failed to remove indicator ${study.name}:`, e);
-						}
-					}
-				}
-
-				// 2. Add indicators that are NEW (not already on the chart)
-				for (const name of desiredIndicators) {
-					if (!isAlreadyActive(name)) {
-						try {
-							chart.createStudy(name, false, false);
-							console.log(`Indicator added: ${name}`);
-						} catch (e) {
-							console.error(`Failed to add indicator ${name}:`, e);
-						}
-					}
-				}
-
-				resolve();
-			}).catch(err => {
-				console.error("Error in syncIndicators:", err);
-				resolve([]);
-			});
-		}
-
-		async function getChartData(chart, upto) {
-			return new Promise((resolve) => {
-				const currentActiveIndicators = chart.getAllStudies();
-				// const activeIndicatorNames = currentActiveIndicators.map(s => s.name);
-
-				chart.exportData({
-					includeTime: true,
-					includeSeries: true,
-					includeStudies: true
-				}).then(result => {
-					// console.log(result);
-
-					const { data, schema } = result;
-
-					const finalResults = [];
-
-					// start index from where we need to fetch data
-					const startIdx = Math.max(0, data.length - upto);
-
-					data.slice(startIdx).map((float64ArrayRow, dataIndex) => {
-						const formattedData = {};
-						// create empty indicators object for setting applied indicator values for each candle 
-						formattedData['indicators'] = {};
-
-						schema.forEach((schemaObj, schemaIndex) => {
-							const { type, sourceType } = schemaObj;
-
-							if (type === 'time') {
-								formattedData['time'] = float64ArrayRow[schemaIndex];
-								return;
-							} else if (type === 'value') {
-								switch (sourceType) {
-									case 'series':
-										const { plotTitle } = schemaObj;
-										const key = plotTitle.toLowerCase();
-										if (['open', 'high', 'low', 'close'].includes(key)) {
-											formattedData[key] = float64ArrayRow[schemaIndex];
-										}
-										break;
-									case 'study':
-										const { sourceId, sourceTitle } = schemaObj; // this is indicator id
-										const indicator = currentActiveIndicators.find(obj => obj.id === sourceId);
-										formattedData['indicators'][sourceTitle] = float64ArrayRow[schemaIndex];
-										break;
-								}
-							}
-						})
-
-						finalResults.push(formattedData);
-					})
-
-					resolve(finalResults.reverse());
-				})
-
-			}).catch(err => {
-				console.error("Error in getChartData:", err);
-				resolve([]);
-			});
-		}
-
 		// MAIN APP INITIALIZATION
 
 		export async function initOnReady() {
@@ -287,26 +173,104 @@
 			class CustomDatafeed extends TradingView.TradingViewDatafeed {
 				constructor() {
 					super();
-					this.onSymbolChange = null;
+					this._historyCache = new Map();
+					this.MAX_CACHE_SIZE = 2000; // Global limit for memory management
 				}
 
-				resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
-					if (this.onSymbolChange) this.onSymbolChange(symbolName);
-					super.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
+				_mergeBars(existing, incoming) {
+					const map = new Map();
+
+					// Existing aur incoming bars ko map mein daalein (duplicates auto-handle ho jayenge)
+					existing.forEach(b => map.set(b.time, b));
+					incoming.forEach(b => map.set(b.time, b));
+
+					// Sort by time
+					let sortedBars = Array.from(map.values()).sort((a, b) => a.time - b.time);
+
+					// Memory Management: Sirf aakhri MAX_CACHE_SIZE bars rakhein
+					if (sortedBars.length > this.MAX_CACHE_SIZE) {
+						sortedBars = sortedBars.slice(-this.MAX_CACHE_SIZE);
+						console.log("Memory Cleaned: Only keeping last 2000 bars.");
+					}
+
+					return sortedBars;
 				}
 
 				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
 					super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
 						if (bars && bars.length > 0) {
+							const currentSymbol = symbolInfo.ticker;
+
+							// Existing data fetch karein aur merge karein
+							const existingBars = this._historyCache.get(currentSymbol) || [];
+							const mergedBars = this._mergeBars(existingBars, bars);
+
+							// Cache update karein
+							this._historyCache.set(currentSymbol, mergedBars);
+
+							// console.log(`Cache updated for ${currentSymbol}. Total bars: ${mergedBars.length}`);
+
+							onResult(bars, meta);
+						} else {
 							onResult(bars, meta);
 						}
 					}, onError);
 				}
 
 				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
-					const onCallback = async (bar) => {
+					const currentSymbol = symbolInfo.ticker;
+					const currentInterval = resolution;
+
+					const onCallback = (bar) => {
+						// TradingView ko update bhejein
 						onTick(bar);
+
+						let history = this._historyCache.get(currentSymbol) || [];
+
+						if (history.length > 0) {
+							const lastBar = history[history.length - 1];
+
+							if (bar.time > lastBar.time) {
+								// 1. Nayi candle start hui hai
+								history.push(bar);
+
+								// Memory check for real-time
+								if (history.length > this.MAX_CACHE_SIZE) {
+									history.shift();
+								}
+							} else {
+								// 2. Maujooda candle update ho rahi hai (last bar update)
+								history[history.length - 1] = bar;
+							}
+						} else {
+							history.push(bar);
+						}
+
+						// Cache mein update save karein
+						this._historyCache.set(currentSymbol, history);
+
+						const payload = {
+							symbol: currentSymbol,
+							interval: currentInterval,
+							data: history.slice(-config.candleRange) // range variables globally defined hone chahiye
+						};
+
+						// Chart switch logic
+						if (typeof config.symbols !== 'undefined') {
+							const currentIndex = config.symbols.findIndex(s => s.symbol === currentSymbol);
+							if (currentIndex !== -1 && window.tvWidget) {
+								window.tvWidget.setActiveChart(currentIndex);
+							}
+						}
+
+						console.log("Payload:", payload);
+
+						// Global Event Dispatch
+						window.dispatchEvent(new CustomEvent('candleUpdates', {
+							detail: JSON.stringify(payload)
+						}));
 					};
+
 					super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
 				}
 			}
@@ -321,11 +285,12 @@
 			const theme = getParameterByName('theme') || (isDark ? 'dark' : 'light');
 
 			// Initialize Widget
+			const defaultSymbol = config.symbols[0];
 			const widget = window.tvWidget = new TradingView.widget({
 				fullscreen: true,
 				autosize: true,
-				symbol: config.symbol,
-				interval: config.timeframe,
+				symbol: defaultSymbol.symbol,
+				interval: defaultSymbol.interval,
 				container: 'tv_chart_container',
 				datafeed: datafeed,
 				library_path: 'https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/',
@@ -353,7 +318,7 @@
 					'pre_post_market_price_line'
 				],
 				overrides: {
-					"mainSeriesProperties.style": chartDisplayTypes[config.chartType] ?? 1,
+					// "mainSeriesProperties.style": 1,
 					"mainSeriesProperties.showCountdown": true,
 					// 'mainSeriesProperties.sessionId': 'extended',
 				},
@@ -427,123 +392,50 @@
 
 			});
 
-			// Watchlist Data Stream
 			widget.onChartReady(async () => {
-				const chart = widget.activeChart();
+				widget.setLayout(config.symbols.length + 'h');
 
-				// Initial Indicator Sync
-				if (config.indicators) {
-					await syncIndicators(chart, config.indicators);
+				for (let i = 0; i < config.symbols.length; i++) {
+					try {
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						const chart = widget.chart(i);
+
+						if (chart) {
+							const { symbol, interval, chartType } = config.symbols[i];
+							chart.setSymbol(symbol, () => {
+								chart.setResolution(interval);
+							});
+							chart.setChartType(chartDisplayTypes[chartType]);
+						}
+					} catch (err) {
+						console.error(`Error setting layout ${i}:`, err);
+					}
 				}
 
-				widget.subscribe('onTick', async () => {
+				for (let i = 0; i < config.symbols.length; i++) {
 					try {
-						// extract candle data (upto X candles)
-						const res = await getChartData(chart, config.candleRange);
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						const chart = widget.chart(i);
 
-						const payload = {
-							symbol: chart.symbol(),
-							currentTimeframe: chart.resolution(),
-							data: res
-						}
-
-						console.log('dispatching candleUpdates', payload);
-						window.dispatchEvent(new CustomEvent('candleUpdates', { detail: JSON.stringify(payload) }));
-					} catch (error) {
-						console.error("Tick processing error:", error);
-					}
-				});
-
-				// Current symbols ko track karne ke liye variable
-				let currentSymbols = [];
-				const watchlistListenerId = "global_watchlist_id";
-				const watchlistApi = await widget.watchList();
-
-				const syncWatchlist = async () => {
-					try {
-						const rawLists = watchlistApi.getAllLists();
-						if (!rawLists) return;
-
-						// All symbols extract karna
-						const listIds = Object.keys(rawLists);
-						const allSymbols = listIds.flatMap(id => {
-							const listData = watchlistApi.getList(id);
-							return listData ? listData : [];
-						});
-
-						// Unique aur valid symbols filter karna
-						const watchListSymbols = [...new Set(allSymbols.filter(item => !item.startsWith('###')))];
-
-						// Check agar list waqayi change hui hai
-						if (JSON.stringify(watchListSymbols) !== JSON.stringify(currentSymbols)) {
-
-							// --- UNSUBSCRIBE LOGIC ---
-							// Nayi subscription se pehle purani ID ko unsubscribe karein
-							if (typeof datafeed.unsubscribeQuotes === 'function') {
-								datafeed.unsubscribeQuotes(watchlistListenerId);
-								console.log("Unsubscribed previous watchlist symbols");
+						if (chart) {
+							const { indicators } = config.symbols[i];
+							if (indicators) {
+								indicators.forEach(ind => {
+									const inputs = ind.inputs || [];
+									chart.createStudy(
+										ind.name,
+										false,    // forceOverlay
+										false,    // lock
+										inputs
+									);
+								});
 							}
-
-							// Reference update karein
-							currentSymbols = watchListSymbols;
-
-							if (currentSymbols.length === 0) {
-								console.log("Watchlist is empty, skipping subscription.");
-								return;
-							}
-
-							// --- SUBSCRIBE LOGIC ---
-							console.log("Subscribing to new symbols:", currentSymbols);
-							datafeed.subscribeQuotes(
-								currentSymbols,
-								[config.symbol], // fastSymbols
-								(data) => {
-									data?.forEach(quote => {
-										if (quote.s === 'ok' && quote.v.trade_loaded) {
-											// Window variable for real-time data publication
-											if (typeof window !== 'undefined') {
-												const payload = {
-													symbols: currentSymbols,
-													currentTimeframe: chart.resolution(),
-													data: {
-														symbol: quote.v.original_name,
-														lastPrice: parseFloat(quote.v.lp),
-														changeUsd: parseFloat(quote.v.ch),
-														changePercent: parseFloat(quote.v.chp),
-														volume: formatVolume(quote.v.volume)
-													}
-												};
-												// console.log('dispatching watchlistUpdates', payload);
-												window.dispatchEvent(new CustomEvent('watchlistUpdates', { detail: JSON.stringify(payload) }));
-											}
-										}
-									});
-								},
-								watchlistListenerId // Same ID use karein cleanup ke liye
-							);
 						}
-					} catch (error) {
-						console.error("Error syncing watchlist:", error);
+					} catch (err) {
+						console.error(`Error setting indicators ${i}:`, err);
 					}
-				};
-
-				// Initial Watchlist Sync
-				syncWatchlist();
-
-				// Dynamic Events Listeners
-				const events = ['onListAdded', 'onListChanged', 'onListRemoved', 'onListRenamed'];
-				events.forEach(eventName => {
-					if (typeof watchlistApi[eventName] === 'function') {
-						watchlistApi[eventName]().subscribe(null, () => {
-							// console.log(`Event Triggered: ${eventName}`);
-							syncWatchlist();
-						});
-					}
-				});
-
+				}
 			});
-
-			window.frames[0]?.focus();
 		}
 
 		window.addEventListener('DOMContentLoaded', initOnReady, false);
