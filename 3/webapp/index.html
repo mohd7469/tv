@@ -40,7 +40,7 @@
 				{
 					symbol: 'BINANCE:BTCUSDT.P',
 					chartType: 'candles',
-					interval: '1',
+					interval: '1h',
 					indicators: [
 						{ name: 'Relative Strength Index', inputs: { length: 7 } }
 					]
@@ -48,7 +48,7 @@
 				{
 					symbol: 'BINANCE:ETHUSDT.P',
 					chartType: 'candles',
-					interval: '5',
+					interval: '1h',
 					indicators: [
 						{ name: 'Relative Strength Index', inputs: { length: 14 } }
 					]
@@ -56,7 +56,7 @@
 				{
 					symbol: 'BINANCE:SOLUSDT.P',
 					chartType: 'candles',
-					interval: '15',
+					interval: '1h',
 					indicators: [
 						{ name: 'Relative Strength Index', inputs: { length: 21 } }
 					]
@@ -188,32 +188,26 @@
 				_getChartData(chart, upto) {
 					return new Promise((resolve) => {
 						chart.exportData({
-							includeTime: true,
-							includeSeries: true,
-							includeStudies: true
+							includeTime: false, // Time nai chahiye
+							includeSeries: false, // OHLC nai chahiye
+							includeStudies: true // Sirf indicators chahiye
 						}).then(result => {
 							const { data, schema } = result;
-							const finalResults = [];
-							const startIdx = Math.max(0, data.length - upto);
 
-							data.slice(startIdx).forEach((float64ArrayRow) => {
-								const formattedData = { indicators: {} };
-								schema.forEach((schemaObj, schemaIndex) => {
-									const { type, sourceType } = schemaObj;
-									if (type === 'time') {
-										formattedData['time'] = float64ArrayRow[schemaIndex];
-									} else if (type === 'value') {
-										if (sourceType === 'series') {
-											const key = schemaObj.plotTitle.toLowerCase();
-											if (['open', 'high', 'low', 'close'].includes(key)) {
-												formattedData[key] = float64ArrayRow[schemaIndex];
-											}
-										} else if (sourceType === 'study') {
-											formattedData['indicators'][schemaObj.sourceTitle] = float64ArrayRow[schemaIndex];
-										}
+							// Sirf aakhri 'upto' bars ka data slice karo
+							const startIdx = Math.max(0, data.length - upto);
+							const slicedData = data.slice(startIdx);
+
+							// Seedha map return karo, extra variables ki zaroorat nahi
+							const finalResults = slicedData.map(row => {
+								const indicators = {};
+								schema.forEach((s, i) => {
+									if (s.sourceType === 'study') {
+										// row[i] mein indicator ki value hai
+										indicators[s.sourceTitle] = row[i];
 									}
 								});
-								finalResults.push(formattedData);
+								return { indicators };
 							});
 
 							resolve(finalResults);
