@@ -62,17 +62,6 @@
 					]
 				},
 			],
-			watchList: [
-				"BINANCE:BTCUSDT.P",
-				"BINANCE:ETHUSDT.P",
-				"BINANCE:SOLUSDT.P",
-				"BINANCE:XRPUSDT.P",
-				"BINANCE:DOGEUSDT.P",
-				"BINANCE:ADAUSDT.P",
-				"BINANCE:BNBUSDT.P",
-				"BINANCE:AVAXUSDT.P",
-				"BINANCE:DOTUSDT.P",
-			],
 		}
 
 		// Style Configuration
@@ -196,6 +185,45 @@
 					return sortedBars;
 				}
 
+				_getChartData(chart, upto) {
+					return new Promise((resolve) => {
+						chart.exportData({
+							includeTime: true,
+							includeSeries: true,
+							includeStudies: true
+						}).then(result => {
+							const { data, schema } = result;
+							const finalResults = [];
+							const startIdx = Math.max(0, data.length - upto);
+
+							data.slice(startIdx).forEach((float64ArrayRow) => {
+								const formattedData = { indicators: {} };
+								schema.forEach((schemaObj, schemaIndex) => {
+									const { type, sourceType } = schemaObj;
+									if (type === 'time') {
+										formattedData['time'] = float64ArrayRow[schemaIndex];
+									} else if (type === 'value') {
+										if (sourceType === 'series') {
+											const key = schemaObj.plotTitle.toLowerCase();
+											if (['open', 'high', 'low', 'close'].includes(key)) {
+												formattedData[key] = float64ArrayRow[schemaIndex];
+											}
+										} else if (sourceType === 'study') {
+											formattedData['indicators'][schemaObj.sourceTitle] = float64ArrayRow[schemaIndex];
+										}
+									}
+								});
+								finalResults.push(formattedData);
+							});
+
+							resolve(finalResults);
+						}).catch(err => {
+							console.error("Error in getChartData:", err);
+							resolve([]);
+						});
+					});
+				}
+
 				getBars(symbolInfo, resolution, periodParams, onResult, onError) {
 					super.getBars(symbolInfo, resolution, periodParams, (bars, meta) => {
 						if (bars && bars.length > 0) {
@@ -249,26 +277,44 @@
 						// Cache mein update save karein
 						this._historyCache.set(currentSymbol, history);
 
-						const payload = {
-							symbol: currentSymbol,
-							interval: currentInterval,
-							data: history.slice(-config.candleRange) // range variables globally defined hone chahiye
-						};
+						// --- Real-time Indicators Sync ---
+						if (window.tvWidget) {
+							const range = config.candleRange;
+							const chartIndex = config.symbols.findIndex(s => s.symbol === currentSymbol);
 
-						// Chart switch logic
-						if (typeof config.symbols !== 'undefined') {
-							const currentIndex = config.symbols.findIndex(s => s.symbol === currentSymbol);
-							if (currentIndex !== -1 && window.tvWidget) {
-								window.tvWidget.setActiveChart(currentIndex);
+							if (chartIndex !== -1) {
+								const chart = window.tvWidget.chart(chartIndex);
+
+								this._getChartData(chart, range).then(indicatorResults => {
+									const historySlice = history.slice(-range);
+
+									// Index-based matching: sync history and indicator arrays
+									const mergedData = historySlice.map((hBar, index) => {
+										const iData = indicatorResults[index];
+										return {
+											...hBar,
+											indicators: (iData && iData.indicators) ? iData.indicators : {}
+										};
+									});
+
+									const payload = {
+										symbol: currentSymbol,
+										interval: currentInterval,
+										data: mergedData
+									};
+
+									// Chart switch logic
+									window.tvWidget.setActiveChart(chartIndex);
+
+									console.log("Payload:", payload);
+
+									// Global Event Dispatch
+									window.dispatchEvent(new CustomEvent('candleUpdates', {
+										detail: JSON.stringify(payload)
+									}));
+								});
 							}
 						}
-
-						console.log("Payload:", payload);
-
-						// Global Event Dispatch
-						window.dispatchEvent(new CustomEvent('candleUpdates', {
-							detail: JSON.stringify(payload)
-						}));
 					};
 
 					super.subscribeBars(symbolInfo, resolution, onCallback, listenerGuid, onResetCacheNeededCallback);
@@ -332,7 +378,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: config.watchList,
+						default_symbols: config.symbols.map(s => s.symbol),
 					},
 				},
 				news_provider: async (symbol, callback) => {
