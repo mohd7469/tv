@@ -563,7 +563,7 @@
 					const newSymbol = chart.symbol();
 					const newInterval = chart.resolution();
 
-					console.log(i, newSymbol, newInterval);
+					console.log(`Syncing Chart-${i}: ${newInterval} - ${newSymbol}`);
 
 					if (newSymbol) {
 						if (config.symbols[i]) {
@@ -615,7 +615,6 @@
 
 					// Ek hi function reference use karein sync ke liye
 					const syncHandler = () => {
-						console.log(`Syncing data for Chart ${i}`);
 						syncConfigWithCharts();
 					};
 
