@@ -78,14 +78,14 @@
 						{ name: 'Relative Strength Index', inputs: { length: 21 } }
 					]
 				},
-				{
-					symbol: 'BINANCE:XRPUSDT.P',
-					chartType: 'candles',
-					interval: '1h',
-					indicators: [
-						{ name: 'Relative Strength Index', inputs: { length: 21 } }
-					]
-				},
+				// {
+				// 	symbol: 'BINANCE:XRPUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
 				// {
 				// 	symbol: 'BINANCE:BNBUSDT.P',
 				// 	chartType: 'candles',
@@ -160,7 +160,7 @@
 			return config.symbols.map(obj => obj.symbol);
 		}
 
-		function getDynamicLayout(len) {
+		function getLayoutValue(len) {
 			const layouts = {
 				1: ['s'],
 				2: ['2h', '2v'],
@@ -389,8 +389,11 @@
 										data: mergedData
 									};
 
-									// Chart switch logic
-									window.tvWidget.setActiveChart(chartIndex);
+
+									if (window.isAutoSwitchEnabled) {
+										// Chart auto switching logic
+										window.tvWidget.setActiveChart(chartIndex);
+									}
 
 									console.log("Payload:", payload);
 
@@ -523,6 +526,30 @@
 					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
 				});
 
+
+				// Checkbox for auto switching charts
+				const checkboxEl = widget.createButton();
+
+				// Button ki styling aur content set karein
+				checkboxEl.setAttribute('title', 'Toggle Auto Charts Switching');
+				checkboxEl.classList.add('auto-switch-container');
+
+				// HTML structure: Ek Label aur Checkbox insert karein
+				checkboxEl.innerHTML = `
+					<div style="display: flex; align-items: center; padding: 0 10px; cursor: pointer; height: 100%;">
+						<input type="checkbox" id="auto-switch-checkbox" style="cursor: pointer; margin-right: 5px;">
+						<label for="auto-switch-checkbox" style="cursor: pointer; user-select: none; font-size: 14px;">Auto Switch</label>
+					</div>
+				`;
+
+				const checkbox = checkboxEl.querySelector('#auto-switch-checkbox');
+				checkbox.checked = true;
+				window.isAutoSwitchEnabled = true;
+
+				// Jab user click kare, global window variable update karein
+				checkbox.addEventListener('change', (e) => {
+					window.isAutoSwitchEnabled = e.target.checked;
+				});
 			});
 
 			function syncConfigWithCharts() {
@@ -604,7 +631,7 @@
 
 			widget.onChartReady(async () => {
 				// 1. Initial Layout set karein
-				const layout = getDynamicLayout(config.symbols.length);
+				const layout = getLayoutValue(config.symbols.length);
 				widget.setLayout(layout);
 
 				// 2. Initial Charts Setup (Symbols, Indicators etc.)
