@@ -111,6 +111,16 @@
 				// 	]
 				// },
 			],
+			disabledFeatures: [
+				// "header_widget",
+				// "legend_inplace_edit",
+				// "trading_account_manager",
+				// "symbol_search_hot_key",
+				// "header_symbol_search",
+				// "header_compare",
+				// "left_toolbar",
+				// "right_toolbar",
+			]
 		}
 
 		// Style Configuration
@@ -419,6 +429,7 @@
 					'use_localstorage_for_settings',
 					'open_account_manager',
 					'dom_widget',
+					...(config?.disabledFeatures || [])
 				],
 				enabled_features: [
 					'study_templates',
