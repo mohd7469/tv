@@ -235,6 +235,16 @@
 			}
 		}
 
+		function toggleAutoSwitchVisibility() {
+			if (!window.autoSwitchCheckboxEl || !window.tvWidget) return;
+
+			const chartCount = window.tvWidget.chartsCount();
+			const shouldShow = chartCount > 1;
+
+			// Use display: block/none to show/hide
+			window.autoSwitchCheckboxEl.style.display = shouldShow ? 'block' : 'none';
+		}
+
 		// MAIN APP INITIALIZATION
 
 		export async function initOnReady() {
@@ -336,6 +346,9 @@
 					const currentInterval = resolution;
 
 					const onCallback = (bar) => {
+						// Initial visibility based on current chart count
+						toggleAutoSwitchVisibility();
+
 						// TradingView ko update bhejein
 						onTick(bar);
 
@@ -526,9 +539,6 @@
 					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
 				});
 
-				// If there is only 1 symbol, do not create auto switch checkbox
-				if (config.symbols.length <= 1) return;
-
 				// Checkbox for auto switching charts
 				const checkboxEl = widget.createButton();
 
@@ -552,6 +562,9 @@
 				checkbox.addEventListener('change', (e) => {
 					window.isAutoSwitchEnabled = e.target.checked;
 				});
+
+				// Store reference for dynamic show/hide
+				window.autoSwitchCheckboxEl = checkboxEl;
 			});
 
 			function syncConfigWithCharts() {
