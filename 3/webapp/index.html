@@ -156,7 +156,12 @@
 
 		// UTILITY FUNCTIONS
 
-		function getWatchList() {
+		function getWatchList(config) {
+			const hasWatchList = config.watchList && config.watchList.length > 0;
+			if (hasWatchList) {
+				return config.watchList;
+			}
+			// return default symbols if no watchlist is present
 			return config.symbols.map(obj => obj.symbol);
 		}
 
@@ -481,7 +486,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: getWatchList(),
+						default_symbols: getWatchList(config),
 					},
 				},
 				news_provider: async (symbol, callback) => {
@@ -567,7 +572,7 @@
 				window.autoSwitchCheckboxEl = checkboxEl;
 			});
 
-			function syncConfigWithCharts() {
+			async function syncConfigWithCharts() {
 				const chartCount = window.tvWidget.chartsCount(); // Pata karo abhi kitne charts khulay hain
 
 				for (let i = 0; i < chartCount; i++) {
@@ -595,6 +600,12 @@
 							});
 						}
 					}
+
+					// const watchlistApi = await window.tvWidget.watchList();
+					// const activeListId = watchlistApi.getActiveListId();
+					// if (activeListId) {
+					//     watchlistApi.updateList(activeListId, getWatchList(config));
+					// }
 				}
 
 				// 3. Agar user ne layout kam kar diya (e.g. 3 se 2), toh extra symbols hata do
@@ -627,8 +638,8 @@
 					const chart = window.tvWidget.chart(i);
 
 					// Ek hi function reference use karein sync ke liye
-					const syncHandler = () => {
-						syncConfigWithCharts();
+					const syncHandler = async () => {
+						await syncConfigWithCharts();
 					};
 
 					// Naye listeners lagayein
