@@ -78,14 +78,14 @@
 						{ name: 'Relative Strength Index', inputs: { length: 21 } }
 					]
 				},
-				// {
-				// 	symbol: 'BINANCE:XRPUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
+				{
+					symbol: 'BINANCE:XRPUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
 				// {
 				// 	symbol: 'BINANCE:BNBUSDT.P',
 				// 	chartType: 'candles',
@@ -155,6 +155,10 @@
 		const codeSvg = (style) => `<svg style="${style}" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.93556 4.5061L3.43556 8.5061L3.00342 8.99998L3.43556 9.49386L6.93556 13.4939L8.06443 12.5061L4.99657 8.99998L8.06443 5.49386L6.93556 4.5061ZM11.0644 13.4939L14.5644 9.49386L14.9966 8.99998L14.5644 8.5061L11.0644 4.5061L9.93556 5.49386L13.0034 8.99998L9.93556 12.5061L11.0644 13.4939Z" fill="currentColor"/></svg>`;
 
 		// UTILITY FUNCTIONS
+
+		function getWatchList() {
+			return config.symbols.map(obj => obj.symbol);
+		}
 
 		function getDynamicLayout(len) {
 			const layouts = {
@@ -461,7 +465,7 @@
 					watchlist: true,
 					datawindow: true,
 					watchlist_settings: {
-						default_symbols: config.symbols.map(s => s.symbol),
+						default_symbols: getWatchList(),
 					},
 				},
 				news_provider: async (symbol, callback) => {
@@ -521,11 +525,89 @@
 
 			});
 
+			function syncConfigWithCharts() {
+				const chartCount = window.tvWidget.chartsCount(); // Pata karo abhi kitne charts khulay hain
+
+				for (let i = 0; i < chartCount; i++) {
+					const chart = window.tvWidget.chart(i);
+
+					const newSymbol = chart.symbol();
+					const newInterval = chart.resolution();
+
+					console.log(i, newSymbol, newInterval);
+
+					if (newSymbol) {
+						if (config.symbols[i]) {
+							// 1. Agar index pehle se mojood hai, toh sirf update karo (Merge)
+							config.symbols[i].symbol = newSymbol;
+							config.symbols[i].interval = newInterval;
+						} else {
+							console.log("Pushing new symbol");
+							// 2. Agar user ne naya layout select kiya (e.g. 3 se 4 charts), 
+							// toh naya object push karo
+							config.symbols.push({
+								symbol: newSymbol,
+								chartType: 'candles',
+								interval: newInterval,
+								indicators: [] // Naye chart ke liye empty indicators ya default rakho
+							});
+						}
+					}
+				}
+
+				// 3. Agar user ne layout kam kar diya (e.g. 3 se 2), toh extra symbols hata do
+				if (config.symbols.length > chartCount) {
+					config.symbols = config.symbols.slice(0, chartCount);
+				}
+			}
+
+			let chartSubscribers = [];
+
+			function attachChartListeners() {
+				const chartCount = window.tvWidget.chartsCount();
+
+				// Pehle purane saare listeners ko dhang se khatam (Destroy) karo
+				chartSubscribers.forEach(sub => {
+					try {
+						const chart = window.tvWidget.chart(sub.index);
+						chart.onSymbolChanged().unsubscribe(sub.listener);
+						chart.onIntervalChanged().unsubscribe(sub.listener);
+					} catch (e) {
+						// Agar chart exist nahi karta (layout kam hua), toh ignore karein
+					}
+				});
+
+				// Array khali kar dein
+				chartSubscribers = [];
+
+				// Ab naye fresh listeners register karein
+				for (let i = 0; i < chartCount; i++) {
+					const chart = window.tvWidget.chart(i);
+
+					// Ek hi function reference use karein sync ke liye
+					const syncHandler = () => {
+						console.log(`Syncing data for Chart ${i}`);
+						syncConfigWithCharts();
+					};
+
+					// Naye listeners lagayein
+					chart.onSymbolChanged().subscribe(null, syncHandler);
+					chart.onIntervalChanged().subscribe(null, syncHandler);
+
+					// Inhein save karein taaki baad mein destroy kar sakein
+					chartSubscribers.push({
+						index: i,
+						listener: syncHandler
+					});
+				}
+			}
+
 			widget.onChartReady(async () => {
-				// Dynamic layout set kiya
+				// 1. Initial Layout set karein
 				const layout = getDynamicLayout(config.symbols.length);
 				widget.setLayout(layout);
 
+				// 2. Initial Charts Setup (Symbols, Indicators etc.)
 				for (let i = 0; i < config.symbols.length; i++) {
 					try {
 						const chart = widget.chart(i);
@@ -557,22 +639,16 @@
 					}
 				}
 
-				config.symbols.forEach((_, index) => {
-					const chart = widget.chart(index);
+				// 3. Attach listeners first time (Cleanup + Fresh Registration)
+				attachChartListeners();
 
-					// Jab bhi is specific chart ka symbol change ho
-					chart.onSymbolChanged().subscribe(null, () => {
-						const newSymbol = chart.symbol();
-						const newInterval = chart.resolution();
-						config.symbols[index].symbol = newSymbol;
-						config.symbols[index].interval = newInterval;
-					});
-
-					// Interval change ke liye bhi subscribe kar sakte ho
-					chart.onIntervalChanged().subscribe(null, () => {
-						const newInterval = chart.resolution();
-						config.symbols[index].interval = newInterval;
-					});
+				// 4. LAYOUT CHANGE WATCHER
+				window.tvWidget.subscribe('layout_about_to_be_changed', () => {
+					setTimeout(() => {
+						syncConfigWithCharts(); // Pehle config update
+						attachChartListeners(); // Purane delete kar ke naye attach
+						console.log("Cleanup and re-sync successful.");
+					}, 800);
 				});
 			});
 		}
