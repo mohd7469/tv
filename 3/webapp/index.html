@@ -330,12 +330,15 @@
 						if (bars && bars.length > 0) {
 							const currentSymbol = symbolInfo.ticker;
 
+							// FIX: Symbol aur Resolution dono ko combine karke unique key banayein
+							const cacheKey = `${currentSymbol}_${resolution}`;
+
 							// Existing data fetch karein aur merge karein
-							const existingBars = this._historyCache.get(currentSymbol) || [];
+							const existingBars = this._historyCache.get(cacheKey) || [];
 							const mergedBars = this._mergeBars(existingBars, bars);
 
 							// Cache update karein
-							this._historyCache.set(currentSymbol, mergedBars);
+							this._historyCache.set(cacheKey, mergedBars);
 
 							// console.log(`Cache updated for ${currentSymbol}. Total bars: ${mergedBars.length}`);
 
@@ -349,6 +352,8 @@
 				subscribeBars(symbolInfo, resolution, onTick, listenerGuid, onResetCacheNeededCallback) {
 					const currentSymbol = symbolInfo.ticker;
 					const currentInterval = resolution;
+					// FIX: Wahi unique key yahan bhi use karein
+					const cacheKey = `${currentSymbol}_${currentInterval}`;
 
 					const onCallback = (bar) => {
 						// Initial visibility based on current chart count
@@ -357,7 +362,8 @@
 						// TradingView ko update bhejein
 						onTick(bar);
 
-						let history = this._historyCache.get(currentSymbol) || [];
+						// FIX: Cache se data fetch karne ke liye cacheKey use karein
+						let history = this._historyCache.get(cacheKey) || [];
 
 						if (history.length > 0) {
 							const lastBar = history[history.length - 1];
@@ -379,7 +385,7 @@
 						}
 
 						// Cache mein update save karein
-						this._historyCache.set(currentSymbol, history);
+						this._historyCache.set(cacheKey, history);
 
 						// --- Real-time Indicators Sync ---
 						if (window.tvWidget) {
