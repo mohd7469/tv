@@ -70,14 +70,14 @@
 						{ name: 'Relative Strength Index', inputs: { length: 14 } }
 					]
 				},
-				{
-					symbol: 'BINANCE:SOLUSDT.P',
-					chartType: 'candles',
-					interval: '1h',
-					indicators: [
-						{ name: 'Relative Strength Index', inputs: { length: 21 } }
-					]
-				},
+				// {
+				// 	symbol: 'BINANCE:SOLUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
 				// {
 				// 	symbol: 'BINANCE:XRPUSDT.P',
 				// 	chartType: 'candles',
@@ -526,6 +526,8 @@
 					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
 				});
 
+				// If there is only 1 symbol, do not create auto switch checkbox
+				if (config.symbols.length <= 1) return;
 
 				// Checkbox for auto switching charts
 				const checkboxEl = widget.createButton();
