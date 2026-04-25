@@ -51,7 +51,7 @@
 		};
 
 		// Global Chart Settings 
-		const config = {
+		let config = {
 			candleRange: 5,
 			symbols: [
 				{
@@ -556,6 +556,24 @@
 						console.error(`Error setting layout ${i}:`, err);
 					}
 				}
+
+				config.symbols.forEach((_, index) => {
+					const chart = widget.chart(index);
+
+					// Jab bhi is specific chart ka symbol change ho
+					chart.onSymbolChanged().subscribe(null, () => {
+						const newSymbol = chart.symbol();
+						const newInterval = chart.resolution();
+						config.symbols[index].symbol = newSymbol;
+						config.symbols[index].interval = newInterval;
+					});
+
+					// Interval change ke liye bhi subscribe kar sakte ho
+					chart.onIntervalChanged().subscribe(null, () => {
+						const newInterval = chart.resolution();
+						config.symbols[index].interval = newInterval;
+					});
+				});
 			});
 		}
 
