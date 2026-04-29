@@ -29,6 +29,79 @@
 	<script type="text/javascript"
 		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/broker-sample/dist/bundle.js"></script>
 
+	<script type="text/javascript">
+		window.TVConfig = {
+			candleRange: 5,
+			symbols: [
+				{
+					symbol: 'BINANCE:BTCUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 7 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:ETHUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 14 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:SOLUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:XRPUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:BNBUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:DOGEUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+				{
+					symbol: 'BINANCE:SUIUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 21 } }
+					]
+				},
+			],
+			disabledFeatures: [
+				// "header_widget",
+				// "legend_inplace_edit",
+				// "trading_account_manager",
+				// "symbol_search_hot_key",
+				// "header_symbol_search",
+				// "header_compare",
+				// "left_toolbar",
+				// "right_toolbar",
+			]
+		}
+	</script>
 	<script type="module">
 		// @ts-nocheck
 
@@ -51,77 +124,79 @@
 		};
 
 		// Global Chart Settings 
-		let config = {
-			candleRange: 5,
-			symbols: [
-				{
-					symbol: 'BINANCE:BTCUSDT.P',
-					chartType: 'candles',
-					interval: '1h',
-					indicators: [
-						{ name: 'Relative Strength Index', inputs: { length: 7 } }
-					]
-				},
-				// {
-				// 	symbol: 'BINANCE:ETHUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 14 } }
-				// 	]
-				// },
-				// {
-				// 	symbol: 'BINANCE:SOLUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
-				// {
-				// 	symbol: 'BINANCE:XRPUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
-				// {
-				// 	symbol: 'BINANCE:BNBUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
-				// {
-				// 	symbol: 'BINANCE:DOGEUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
-				// {
-				// 	symbol: 'BINANCE:SUIUSDT.P',
-				// 	chartType: 'candles',
-				// 	interval: '1h',
-				// 	indicators: [
-				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-				// 	]
-				// },
-			],
-			disabledFeatures: [
-				// "header_widget",
-				// "legend_inplace_edit",
-				// "trading_account_manager",
-				// "symbol_search_hot_key",
-				// "header_symbol_search",
-				// "header_compare",
-				// "left_toolbar",
-				// "right_toolbar",
-			]
-		}
+		let config = window.TVConfig;
+
+		// let config = {
+		//     candleRange: 5,
+		//     symbols: [
+		//         {
+		//             symbol: 'BINANCE:BTCUSDT.P',
+		//             chartType: 'candles',
+		//             interval: '1h',
+		//             indicators: [
+		//                 { name: 'Relative Strength Index', inputs: { length: 7 } }
+		//             ]
+		//         },
+		//         // {
+		//         // 	symbol: 'BINANCE:ETHUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 14 } }
+		//         // 	]
+		//         // },
+		//         // {
+		//         // 	symbol: 'BINANCE:SOLUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+		//         // 	]
+		//         // },
+		//         // {
+		//         // 	symbol: 'BINANCE:XRPUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+		//         // 	]
+		//         // },
+		//         // {
+		//         // 	symbol: 'BINANCE:BNBUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+		//         // 	]
+		//         // },
+		//         // {
+		//         // 	symbol: 'BINANCE:DOGEUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+		//         // 	]
+		//         // },
+		//         // {
+		//         // 	symbol: 'BINANCE:SUIUSDT.P',
+		//         // 	chartType: 'candles',
+		//         // 	interval: '1h',
+		//         // 	indicators: [
+		//         // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+		//         // 	]
+		//         // },
+		//     ],
+		//     disabledFeatures: [
+		//         // "header_widget",
+		//         // "legend_inplace_edit",
+		//         // "trading_account_manager",
+		//         // "symbol_search_hot_key",
+		//         // "header_symbol_search",
+		//         // "header_compare",
+		//         // "left_toolbar",
+		//         // "right_toolbar",
+		//     ]
+		// }
 
 		// Style Configuration
 		const styles = {
