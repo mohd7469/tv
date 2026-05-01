@@ -135,23 +135,6 @@
 			window.alertSound = null;
 		}
 
-		export const initSound = () => {
-			if (window.alertSound !== null) return;
-
-			window.alertSound = new Howl({
-				src: ['https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/beep.mp3'],
-				loop: true,
-				volume: 1,
-				html5: false,
-				autoplay: false,
-				onplayerror: () => {
-					window.alertSound.unlock();
-				}
-			});
-
-			window.getOrCreateOverlay();
-		};
-
 		window.getOrCreateOverlay = () => {
 			let overlay = document.getElementById('alert-click-overlay');
 			if (!overlay) {
@@ -172,8 +155,25 @@
 			return overlay;
 		};
 
+		window.initSound = () => {
+			if (window.alertSound !== null) return;
+
+			window.alertSound = new Howl({
+				src: ['https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/beep.mp3'],
+				loop: true,
+				volume: 1,
+				html5: false,
+				autoplay: false,
+				onplayerror: () => {
+					window.alertSound.unlock();
+				}
+			});
+
+			window.getOrCreateOverlay();
+		};
+
 		window.playAlert = () => {
-			if (!window.alertSound) initSound();
+			if (!window.alertSound) window.initSound();
 
 			if (!window.alertSound.playing()) {
 				window.alertSound.play();
@@ -190,7 +190,7 @@
 			if (overlay) overlay.style.display = 'none';
 		};
 
-		initSound();
+		window.initSound();
 	</script>
 
 	<script type="module">
