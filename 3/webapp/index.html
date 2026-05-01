@@ -135,6 +135,26 @@
 			window.alertSound = null;
 		}
 
+		window.getOrCreateOverlay = () => {
+			let overlay = document.getElementById('alert-click-overlay');
+			if (!overlay) {
+				overlay = document.createElement('div');
+				overlay.id = 'alert-click-overlay';
+				overlay.style.cssText = 'display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999999; cursor: pointer;';
+				overlay.addEventListener('click', () => {
+					window.stopAlert();
+				});
+				if (document.body) {
+					document.body.appendChild(overlay);
+				} else {
+					window.addEventListener('DOMContentLoaded', () => {
+						document.body.appendChild(overlay);
+					});
+				}
+			}
+			return overlay;
+		};
+
 		window.initSound = () => {
 			if (window.alertSound !== null) return;
 
@@ -148,6 +168,8 @@
 					window.alertSound.unlock();
 				}
 			});
+
+			window.getOrCreateOverlay();
 		};
 
 		window.playAlert = () => {
@@ -155,6 +177,8 @@
 
 			if (!window.alertSound.playing()) {
 				window.alertSound.play();
+				const overlay = window.getOrCreateOverlay();
+				if (overlay) overlay.style.display = 'block';
 			}
 		};
 
@@ -162,6 +186,8 @@
 			if (window.alertSound) {
 				window.alertSound.stop();
 			}
+			const overlay = document.getElementById('alert-click-overlay');
+			if (overlay) overlay.style.display = 'none';
 		};
 
 		window.initSound();
