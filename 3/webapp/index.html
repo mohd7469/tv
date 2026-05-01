@@ -631,8 +631,10 @@
 					}]);
 			};
 
-			// Header Buttons
-			widget.headerReady().then(() => {
+			// Header Buttons (only if header_widget is enabled)
+			const isHeaderDisabled = (config?.disabledFeatures || []).includes('header_widget');
+			if (!isHeaderDisabled) {
+				widget.headerReady().then(() => {
 				// Theme Toggle
 				const themeBtn = widget.createButton({ align: 'right' });
 				themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
@@ -670,7 +672,8 @@
 
 				// Store reference for dynamic show/hide
 				window.autoSwitchCheckboxEl = checkboxEl;
-			});
+				});
+			}
 
 			async function syncConfigWithCharts() {
 				const chartCount = window.tvWidget.chartsCount(); // Pata karo abhi kitne charts khulay hain
