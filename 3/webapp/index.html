@@ -131,35 +131,40 @@
 	</script>
 
 	<script>
-		var alertSound = null;
-
-		function initSound() {
-			if (!alertSound) {
-				alertSound = new Howl({
-					src: ['https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/beep.mp3'],
-					loop: true,
-					volume: 1,
-					html5: false,
-					autoplay: false
-				});
-			}
+		if (!window.alertSound) {
+			window.alertSound = null;
 		}
 
-		function playAlert() {
-			if (!alertSound) initSound();
+		window.initSound = () => {
+			if (window.alertSound !== null) return;
 
-			if (!alertSound.playing()) {
-				alertSound.play();
+			window.alertSound = new Howl({
+				src: ['https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/beep.mp3'],
+				loop: true,
+				volume: 1,
+				html5: false,
+				autoplay: false,
+				onplayerror: () => {
+					window.alertSound.unlock();
+				}
+			});
+		};
+
+		window.playAlert = () => {
+			if (!window.alertSound) window.initSound();
+
+			if (!window.alertSound.playing()) {
+				window.alertSound.play();
 			}
-		}
+		};
 
-		function stopAlert() {
-			if (alertSound && alertSound.playing()) {
-				alertSound.stop();
+		window.stopAlert = () => {
+			if (window.alertSound) {
+				window.alertSound.stop();
 			}
-		}
+		};
 
-		initSound();
+		window.initSound();
 	</script>
 
 	<script type="module">
