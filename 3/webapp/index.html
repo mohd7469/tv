@@ -22,7 +22,7 @@
 		} */
 	</style>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
 	<script type="text/javascript"
 		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/charting_library.standalone.js"></script>
 	<script type="text/javascript"
@@ -635,43 +635,43 @@
 			const isHeaderDisabled = (config?.disabledFeatures || []).includes('header_widget');
 			if (!isHeaderDisabled) {
 				widget.headerReady().then(() => {
-				// Theme Toggle
-				const themeBtn = widget.createButton({ align: 'right' });
-				themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+					// Theme Toggle
+					const themeBtn = widget.createButton({ align: 'right' });
+					themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
 					Dark Mode <div class="switcher">
 						<input type="checkbox" id="theme-switch" ${theme === 'dark' ? 'checked' : ''}>
 						<span class="thumb-wrapper"><span class="track"></span><span class="thumb"></span></span>
 					</div></label>`;
-				themeBtn.querySelector('#theme-switch').addEventListener('change', (e) => {
-					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
-				});
+					themeBtn.querySelector('#theme-switch').addEventListener('change', (e) => {
+						widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
+					});
 
-				// Checkbox for auto switching charts
-				const checkboxEl = widget.createButton();
+					// Checkbox for auto switching charts
+					const checkboxEl = widget.createButton();
 
-				// Button ki styling aur content set karein
-				checkboxEl.setAttribute('title', 'Toggle Auto Charts Switching');
-				checkboxEl.classList.add('auto-switch-container');
+					// Button ki styling aur content set karein
+					checkboxEl.setAttribute('title', 'Toggle Auto Charts Switching');
+					checkboxEl.classList.add('auto-switch-container');
 
-				// HTML structure: Ek Label aur Checkbox insert karein
-				checkboxEl.innerHTML = `
+					// HTML structure: Ek Label aur Checkbox insert karein
+					checkboxEl.innerHTML = `
 					<div style="display: flex; align-items: center; padding: 0 10px; cursor: pointer; height: 100%;">
 						<input type="checkbox" id="auto-switch-checkbox" style="cursor: pointer; margin-right: 5px;">
 						<label for="auto-switch-checkbox" style="cursor: pointer; user-select: none; font-size: 14px;">Auto Switch</label>
 					</div>
 				`;
 
-				const checkbox = checkboxEl.querySelector('#auto-switch-checkbox');
-				checkbox.checked = true;
-				window.isAutoSwitchEnabled = true;
+					const checkbox = checkboxEl.querySelector('#auto-switch-checkbox');
+					checkbox.checked = true;
+					window.isAutoSwitchEnabled = true;
 
-				// Jab user click kare, global window variable update karein
-				checkbox.addEventListener('change', (e) => {
-					window.isAutoSwitchEnabled = e.target.checked;
-				});
+					// Jab user click kare, global window variable update karein
+					checkbox.addEventListener('change', (e) => {
+						window.isAutoSwitchEnabled = e.target.checked;
+					});
 
-				// Store reference for dynamic show/hide
-				window.autoSwitchCheckboxEl = checkboxEl;
+					// Store reference for dynamic show/hide
+					window.autoSwitchCheckboxEl = checkboxEl;
 				});
 			}
 
