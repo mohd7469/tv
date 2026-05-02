@@ -155,7 +155,33 @@
 			return overlay;
 		};
 
+		window.enableAlerts = async () => {
+			if (!("Notification" in window)) {
+				console.log("This browser does not support desktop notifications");
+				return;
+			}
+
+			try {
+				const permission = await Notification.requestPermission();
+				console.log("Notification permission:", permission);
+
+				if (permission === "granted" && window.alertSound) {
+					window.alertSound.play();
+					window.alertSound.pause();
+				}
+			} catch (err) {
+				console.log("Error in enableAlerts:", err);
+			}
+		}
+
 		window.initSound = () => {
+			const overlay = window.getOrCreateOverlay(); // to get user first interaction
+			if (overlay) {
+				overlay.style['background'] = 'rgba(0, 0, 0, 0)';
+				overlay.style['backdrop-filter'] = 'blur(5px)';
+				overlay.style['display'] = 'block';
+			}
+
 			if (window.alertSound !== null) return;
 
 			window.alertSound = new Howl({
@@ -170,6 +196,8 @@
 			});
 
 			window.getOrCreateOverlay();
+
+			window.enableAlerts().catch(err => console.error("EnableAlerts call failed:", err));
 		};
 
 		window.playAlert = () => {
