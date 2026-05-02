@@ -193,6 +193,12 @@
 			const overlay = window.getOrCreateOverlay();
 			if (overlay) {
 				overlay.style['background'] = 'rgba(0, 0, 0, 0)';
+
+				overlay.style.backgroundImage = 'url("https://ico.hugeicons.com/play-solid-rounded-512.webp")';
+				overlay.style.backgroundPosition = 'center';
+				overlay.style.backgroundRepeat = 'no-repeat';
+				overlay.style.backgroundSize = '200px';
+
 				overlay.style['backdrop-filter'] = 'blur(5px)';
 				overlay.style['display'] = 'block'; // to get user first interaction
 			}
