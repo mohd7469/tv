@@ -2,8 +2,8 @@
 <html>
 
 <head>
-    <title>Tradingview</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0" />
+	<title>Tradingview</title>
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0" />
 
     <style>
         /* .tv-wrapper {
@@ -22,15 +22,15 @@
 		} */
     </style>
 
-    <script type="text/javascript"
-        src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/charting_library.standalone.js"></script>
-    <script type="text/javascript"
-        src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/external-embedding/embed-widget-tradingview-datafeed.js"></script>
-    <script type="text/javascript"
-        src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/broker-sample/dist/bundle.js"></script>
+	<script type="text/javascript"
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/charting_library.standalone.js"></script>
+	<script type="text/javascript"
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/external-embedding/embed-widget-tradingview-datafeed.js"></script>
+	<script type="text/javascript"
+		src="https://cdn.jsdelivr.net/gh/mohd7469/tv@main/3/webapp/charting_library/broker-sample/dist/bundle.js"></script>
 
-    <script type="module">
-        // @ts-nocheck
+	<script type="module">
+		// @ts-nocheck
 
         // Default Enabled Watchlist Volumn Column 
         localStorage.setItem('widget.watchlist.view-state', JSON.stringify(["short_name", "last_price", "change", "change_percent", "volume"]));
@@ -50,78 +50,78 @@
             'volume_candles': 19,
         };
 
-        // Global Chart Settings 
-        let config = {
-            candleRange: 5,
-            symbols: [
-                {
-                    symbol: 'BINANCE:BTCUSDT.P',
-                    chartType: 'candles',
-                    interval: '1h',
-                    indicators: [
-                        { name: 'Relative Strength Index', inputs: { length: 7 } }
-                    ]
-                },
-                // {
-                // 	symbol: 'BINANCE:ETHUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 14 } }
-                // 	]
-                // },
-                // {
-                // 	symbol: 'BINANCE:SOLUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-                // 	]
-                // },
-                // {
-                // 	symbol: 'BINANCE:XRPUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-                // 	]
-                // },
-                // {
-                // 	symbol: 'BINANCE:BNBUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-                // 	]
-                // },
-                // {
-                // 	symbol: 'BINANCE:DOGEUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-                // 	]
-                // },
-                // {
-                // 	symbol: 'BINANCE:SUIUSDT.P',
-                // 	chartType: 'candles',
-                // 	interval: '1h',
-                // 	indicators: [
-                // 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
-                // 	]
-                // },
-            ],
-            disabledFeatures: [
-                // "header_widget",
-                // "legend_inplace_edit",
-                // "trading_account_manager",
-                // "symbol_search_hot_key",
-                // "header_symbol_search",
-                // "header_compare",
-                // "left_toolbar",
-                // "right_toolbar",
-            ]
-        }
+		// Global Chart Settings 
+		let config = {
+			candleRange: 5,
+			symbols: [
+				{
+					symbol: 'BINANCE:BTCUSDT.P',
+					chartType: 'candles',
+					interval: '1h',
+					indicators: [
+						{ name: 'Relative Strength Index', inputs: { length: 7 } }
+					]
+				},
+				// {
+				// 	symbol: 'BINANCE:ETHUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 14 } }
+				// 	]
+				// },
+				// {
+				// 	symbol: 'BINANCE:SOLUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
+				// {
+				// 	symbol: 'BINANCE:XRPUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
+				// {
+				// 	symbol: 'BINANCE:BNBUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
+				// {
+				// 	symbol: 'BINANCE:DOGEUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
+				// {
+				// 	symbol: 'BINANCE:SUIUSDT.P',
+				// 	chartType: 'candles',
+				// 	interval: '1h',
+				// 	indicators: [
+				// 		{ name: 'Relative Strength Index', inputs: { length: 21 } }
+				// 	]
+				// },
+			],
+			disabledFeatures: [
+				// "header_widget",
+				// "legend_inplace_edit",
+				// "trading_account_manager",
+				// "symbol_search_hot_key",
+				// "header_symbol_search",
+				// "header_compare",
+				// "left_toolbar",
+				// "right_toolbar",
+			]
+		}
 
         // Style Configuration
         const styles = {
@@ -443,83 +443,83 @@
             const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             const theme = getParameterByName('theme') || (isDark ? 'dark' : 'light');
 
-            // Initialize Widget
-            const defaultSymbol = config.symbols[0];
-            const widget = window.tvWidget = new TradingView.widget({
-                fullscreen: false,
-                autosize: true,
-                symbol: defaultSymbol.symbol,
-                interval: defaultSymbol.interval,
-                container: 'tv_chart_container',
-                datafeed: datafeed,
-                library_path: 'charting_library/',
-                locale: getParameterByName('lang') || 'en',
-                custom_css_url: cssBlobUrl,
-                theme: theme,
-                disabled_features: [
-                    'use_localstorage_for_settings',
-                    'open_account_manager',
-                    'dom_widget',
-                    ...(config?.disabledFeatures || [])
-                ],
-                enabled_features: [
-                    'study_templates',
-                    'pre_post_market_sessions',
-                    'show_symbol_logos',
-                    'show_exchange_logos',
-                    'seconds_resolution',
-                    // 'custom_resolutions', // datafeed doesn't support this
-                    'secondary_series_extend_time_scale',
-                    // 'determine_first_data_request_size_using_visible_range',
-                    'show_percent_option_for_right_margin',
-                    'display_data_mode',
-                    'items_favoriting',
-                    'disable_resolution_rebuild',
-                    'pre_post_market_price_line'
-                ],
-                overrides: {
-                    // "mainSeriesProperties.style": 1,
-                    "mainSeriesProperties.showCountdown": true,
-                    // 'mainSeriesProperties.sessionId': 'extended',
-                },
-                charts_storage_url: 'https://saveload.tradingview.com',
-                charts_storage_api_version: '1.1',
-                client_id: 'trading_platform_demo',
-                user_id: 'public_user',
-                widgetbar: {
-                    details: true,
-                    news: true,
-                    watchlist: true,
-                    datawindow: true,
-                    watchlist_settings: {
-                        default_symbols: getWatchList(config),
-                    },
-                },
-                news_provider: async (symbol, callback) => {
-                    // const newsItems = await fetchNews();
-                    callback({ title: 'Market Insights', newsItems: [] });
-                },
-                broker_factory: (host) => new Brokers.BrokerDemo(host, datafeed),
-                broker_config: {
-                    configFlags: {
-                        supportNativeReversePosition: true,
-                        supportClosePosition: true,
-                        supportPLUpdate: true,
-                        supportLevel2Data: false,
-                        showQuantityInsteadOfAmount: true,
-                        supportEditAmount: false,
-                        supportOrderBrackets: true,
-                        supportMarketBrackets: true,
-                        supportPositionBrackets: true,
-                        supportOrdersHistory: false,
-                        supportMultipleExitLevels: true
-                    },
-                    durations: [
-                        { name: 'DAY', value: 'DAY' },
-                        { name: 'GTC', value: 'GTC' },
-                    ],
-                },
-            });
+			// Initialize Widget
+			const defaultSymbol = config.symbols[0];
+			const widget = window.tvWidget = new TradingView.widget({
+				fullscreen: false,
+				autosize: true,
+				symbol: defaultSymbol.symbol,
+				interval: defaultSymbol.interval,
+				container: 'tv_chart_container',
+				datafeed: datafeed,
+				library_path: 'charting_library/',
+				locale: getParameterByName('lang') || 'en',
+				custom_css_url: cssBlobUrl,
+				theme: theme,
+				disabled_features: [
+					'use_localstorage_for_settings',
+					'open_account_manager',
+					'dom_widget',
+					...(config?.disabledFeatures || [])
+				],
+				enabled_features: [
+					'study_templates',
+					'pre_post_market_sessions',
+					'show_symbol_logos',
+					'show_exchange_logos',
+					'seconds_resolution',
+					// 'custom_resolutions', // datafeed doesn't support this
+					'secondary_series_extend_time_scale',
+					// 'determine_first_data_request_size_using_visible_range',
+					'show_percent_option_for_right_margin',
+					'display_data_mode',
+					'items_favoriting',
+					'disable_resolution_rebuild',
+					'pre_post_market_price_line'
+				],
+				overrides: {
+					// "mainSeriesProperties.style": 1,
+					"mainSeriesProperties.showCountdown": true,
+					// 'mainSeriesProperties.sessionId': 'extended',
+				},
+				charts_storage_url: 'https://saveload.tradingview.com',
+				charts_storage_api_version: '1.1',
+				client_id: 'trading_platform_demo',
+				user_id: 'public_user',
+				widgetbar: {
+					details: true,
+					news: true,
+					watchlist: true,
+					datawindow: true,
+					watchlist_settings: {
+						default_symbols: getWatchList(config),
+					},
+				},
+				news_provider: async (symbol, callback) => {
+					// const newsItems = await fetchNews();
+					callback({ title: 'Market Insights', newsItems: [] });
+				},
+				broker_factory: (host) => new Brokers.BrokerDemo(host, datafeed),
+				broker_config: {
+					configFlags: {
+						supportNativeReversePosition: true,
+						supportClosePosition: true,
+						supportPLUpdate: true,
+						supportLevel2Data: false,
+						showQuantityInsteadOfAmount: true,
+						supportEditAmount: false,
+						supportOrderBrackets: true,
+						supportMarketBrackets: true,
+						supportPositionBrackets: true,
+						supportOrdersHistory: false,
+						supportMultipleExitLevels: true
+					},
+					durations: [
+						{ name: 'DAY', value: 'DAY' },
+						{ name: 'GTC', value: 'GTC' },
+					],
+				},
+			});
 
             // Datafeed Status UI
             datafeed.onSymbolChange = (symbol) => {
@@ -537,46 +537,46 @@
                     }]);
             };
 
-            // Header Buttons
-            widget.headerReady().then(() => {
-                // Theme Toggle
-                const themeBtn = widget.createButton({ align: 'right' });
-                themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+			// Header Buttons
+			widget.headerReady().then(() => {
+				// Theme Toggle
+				const themeBtn = widget.createButton({ align: 'right' });
+				themeBtn.innerHTML = `<label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
 					Dark Mode <div class="switcher">
 						<input type="checkbox" id="theme-switch" ${theme === 'dark' ? 'checked' : ''}>
 						<span class="thumb-wrapper"><span class="track"></span><span class="thumb"></span></span>
 					</div></label>`;
-                themeBtn.querySelector('#theme-switch').addEventListener('change', (e) => {
-                    widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
-                });
+				themeBtn.querySelector('#theme-switch').addEventListener('change', (e) => {
+					widget.changeTheme(e.target.checked ? 'dark' : 'light', { disableUndo: true });
+				});
 
-                // Checkbox for auto switching charts
-                const checkboxEl = widget.createButton();
+				// Checkbox for auto switching charts
+				const checkboxEl = widget.createButton();
 
-                // Button ki styling aur content set karein
-                checkboxEl.setAttribute('title', 'Toggle Auto Charts Switching');
-                checkboxEl.classList.add('auto-switch-container');
+				// Button ki styling aur content set karein
+				checkboxEl.setAttribute('title', 'Toggle Auto Charts Switching');
+				checkboxEl.classList.add('auto-switch-container');
 
-                // HTML structure: Ek Label aur Checkbox insert karein
-                checkboxEl.innerHTML = `
+				// HTML structure: Ek Label aur Checkbox insert karein
+				checkboxEl.innerHTML = `
 					<div style="display: flex; align-items: center; padding: 0 10px; cursor: pointer; height: 100%;">
 						<input type="checkbox" id="auto-switch-checkbox" style="cursor: pointer; margin-right: 5px;">
 						<label for="auto-switch-checkbox" style="cursor: pointer; user-select: none; font-size: 14px;">Auto Switch</label>
 					</div>
 				`;
 
-                const checkbox = checkboxEl.querySelector('#auto-switch-checkbox');
-                checkbox.checked = true;
-                window.isAutoSwitchEnabled = true;
+				const checkbox = checkboxEl.querySelector('#auto-switch-checkbox');
+				checkbox.checked = true;
+				window.isAutoSwitchEnabled = true;
 
-                // Jab user click kare, global window variable update karein
-                checkbox.addEventListener('change', (e) => {
-                    window.isAutoSwitchEnabled = e.target.checked;
-                });
+				// Jab user click kare, global window variable update karein
+				checkbox.addEventListener('change', (e) => {
+					window.isAutoSwitchEnabled = e.target.checked;
+				});
 
-                // Store reference for dynamic show/hide
-                window.autoSwitchCheckboxEl = checkboxEl;
-            });
+				// Store reference for dynamic show/hide
+				window.autoSwitchCheckboxEl = checkboxEl;
+			});
 
             async function syncConfigWithCharts() {
                 const chartCount = window.tvWidget.chartsCount(); // Pata karo abhi kitne charts khulay hain
