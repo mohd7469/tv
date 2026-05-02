@@ -190,11 +190,11 @@
 
 			window.enableAlerts().catch(err => console.error("EnableAlerts call failed:", err));
 
-			const overlay = window.getOrCreateOverlay(); // to get user first interaction
+			const overlay = window.getOrCreateOverlay();
 			if (overlay) {
 				overlay.style['background'] = 'rgba(0, 0, 0, 0)';
 				overlay.style['backdrop-filter'] = 'blur(5px)';
-				overlay.style['display'] = 'block';
+				overlay.style['display'] = 'block'; // to get user first interaction
 			}
 		};
 
